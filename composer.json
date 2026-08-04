@@ -1,0 +1,10 @@
+{
+    "name": "akademik/akademik-module",
+    "description": "Akademik - academic operations & student lifecycle",
+    "autoload": {
+        "psr-4": {
+            "Modules\\Akademik\\": "app/",
+            "Modules\\Akademik\\Database\\": "database/"
+        }
+    }
+}

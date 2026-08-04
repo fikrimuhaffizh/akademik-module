@@ -1,0 +1,33 @@
+{
+    "name": "Akademik",
+    "alias": "akademik",
+    "route_prefix": "akd",
+    "requires": [
+        "Account",
+        "HrCore",
+        "Sys",
+        "Kurikulum",
+        "Pmb",
+        "Referensi"
+    ],
+    "providers": [
+        "Modules\\Akademik\\Providers\\AkademikServiceProvider"
+    ],
+    "permission_seeder": "Modules\\Akademik\\Database\\Seeders\\RolePermissionSeeder",
+    "migration": {
+        "seeds": [
+            "Modules\\Akademik\\Database\\Seeders\\DatabaseSeeder"
+        ]
+    },
+    "portal": {
+        "title": "Akademik",
+        "description": "Operasi akademik & siklus hidup mahasiswa — KRS, nilai, penawaran, jadwal, perkuliahan",
+        "icon": "clipboard-check",
+        "group": "academic",
+        "priority": 70,
+        "route": "akd.dashboard",
+        "status": "ready",
+        "message": null
+    },
+    "priority": 45
+}
