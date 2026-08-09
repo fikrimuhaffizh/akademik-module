@@ -53,7 +53,7 @@ class MahasiswaController extends Controller
                 $badge = status_badge($row->status);
                 $riwayat = $row->riwayatStatus;
                 if ($riwayat) {
-                    $tgl = $riwayat->tgl_efektif ? \Carbon\Carbon::parse($riwayat->tgl_efektif)->format('d/m/Y') : '-';
+                    $tgl = formatTanggalIndo($riwayat->tgl_efektif);
                     $badge .= "<div class=\"text-secondary small mt-1\">{$riwayat->status_lama} → {$riwayat->status_baru} ({$tgl})</div>";
                 }
                 return $badge;

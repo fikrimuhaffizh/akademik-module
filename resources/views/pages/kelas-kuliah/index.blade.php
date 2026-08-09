@@ -17,11 +17,11 @@
             <x-ui.datatable id="table-kelas" route="{{ route('akd.kelas-akd.data') }}"
                 :columns="[
                     ['data' => 'DT_RowIndex', 'title' => '#', 'orderable' => false, 'searchable' => false, 'class' => 'text-center', 'width' => '50px'],
-                    ['data' => 'penawaran', 'title' => 'Penawaran MK'],
-                    ['data' => 'nama_kelas', 'title' => 'Nama Kelas'],
-                    ['data' => 'kapasitas', 'title' => 'Kapasitas', 'class' => 'text-center'],
-                    ['data' => 'sistem_kuliah', 'title' => 'Sistem'],
-                    ['data' => 'is_aktif', 'title' => 'Status', 'class' => 'text-center'],
+                    ['data' => 'penawaran', 'title' => 'Penawaran MK', 'orderable' => false, 'searchable' => false],
+                    ['data' => 'nama_kelas', 'title' => 'Nama Kelas', 'searchable' => false],
+                    ['data' => 'kapasitas', 'title' => 'Kapasitas', 'class' => 'text-center', 'searchable' => false],
+                    ['data' => 'sistem_kuliah', 'title' => 'Sistem', 'searchable' => false],
+                    ['data' => 'is_aktif', 'title' => 'Status', 'class' => 'text-center', 'searchable' => false],
                     ['data' => 'action', 'title' => 'Aksi', 'orderable' => false, 'searchable' => false, 'class' => 'text-center', 'width' => '100px'],
                 ]" />
         </x-ui.card-body>

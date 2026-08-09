@@ -17,8 +17,8 @@
             <x-ui.datatable id="table-pembebanan" route="{{ route('akd.pembebanan.data') }}"
                 :columns="[
                     ['data' => 'DT_RowIndex', 'title' => '#', 'orderable' => false, 'searchable' => false, 'class' => 'text-center', 'width' => '50px'],
-                    ['data' => 'kelas', 'title' => 'Kelas'],
-                    ['data' => 'pegawai', 'title' => 'Dosen'],
+                    ['data' => 'kelas', 'title' => 'Kelas', 'orderable' => false, 'searchable' => false],
+                    ['data' => 'pegawai', 'title' => 'Dosen', 'orderable' => false, 'searchable' => false],
                     ['data' => 'peran', 'title' => 'Peran', 'class' => 'text-center'],
                     ['data' => 'action', 'title' => 'Aksi', 'orderable' => false, 'searchable' => false, 'class' => 'text-center', 'width' => '100px'],
                 ]" />

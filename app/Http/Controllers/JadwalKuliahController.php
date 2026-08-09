@@ -35,10 +35,10 @@ class JadwalKuliahController extends Controller
     {
         return DataTables::of($this->service->getFilteredQuery($request->all()))
             ->addIndexColumn()
-            ->editColumn('kelas', fn ($r) => $r->kelas?->nama_kelas ?? '-')
-            ->editColumn('ruang', fn ($r) => $r->ruang ? $r->ruang->nama : ($r->isOnline() ? '<span class="badge bg-info-lt text-info">Online</span>' : '-'))
+            ->addColumn('kelas', fn ($r) => $r->kelas?->nama_kelas ?? '-')
+            ->addColumn('ruang', fn ($r) => $r->ruang ? $r->ruang->nama : ($r->isOnline() ? '<span class="badge bg-info-lt text-info">Online</span>' : '-'))
             ->editColumn('hari', fn ($r) => ucfirst($r->hari))
-            ->editColumn('waktu', fn ($r) => $r->jam_mulai . ' - ' . $r->jam_selesai)
+            ->addColumn('waktu', fn ($r) => $r->jam_mulai . ' - ' . $r->jam_selesai)
             ->addColumn('status', function ($r) {
                 $isOverlap = $this->service->checkOverlap($r);
                 if ($isOverlap) {

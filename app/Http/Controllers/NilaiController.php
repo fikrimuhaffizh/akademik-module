@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Modules\Akademik\Services\NilaiService;
 use Modules\Akademik\Services\NilaiImportService;
 use Modules\Akademik\Models\Nilai;
+use Modules\Akademik\Models\PembebananDosen;
 use Illuminate\Http\Request;
 use Modules\Akademik\Http\Requests\NilaiStoreRequest;
 use Modules\Akademik\Http\Requests\NilaiUpdateRequest;
@@ -81,9 +82,31 @@ class NilaiController extends Controller
     public function update(NilaiUpdateRequest $request, string $id)
     {
         $nilai = Nilai::findOrFail(decryptIdIfEncrypted($id));
+        $this->authorizeDosenKelas($nilai->kelas_id);
         $this->importService->updateNilai($nilai->nilai_akhir_id, $request->validated());
 
         return jsonSuccess('Nilai berhasil diupdate.');
+    }
+
+    /**
+     * Guard dosen: pengguna yang terdaftar sebagai pegawai (dosen) hanya boleh
+     * mengubah nilai pada kelas yang diampu (tercatat di akd_pembebanan_dosen).
+     * Pengguna tanpa profil pegawai (admin/operator) dianggap terotorisasi via
+     * permission 'akd.nilai.update'.
+     */
+    protected function authorizeDosenKelas(?int $kelasId): void
+    {
+        $pegawai = auth()->user()?->pegawai;
+
+        if (! $pegawai) {
+            return;
+        }
+
+        $assigned = PembebananDosen::where('kelas_id', $kelasId)
+            ->where('pegawai_id', $pegawai->pegawai_id)
+            ->exists();
+
+        abort_unless($assigned, 403, 'Anda tidak ditugaskan mengampu kelas ini.');
     }
 
     public function destroy(string $id)

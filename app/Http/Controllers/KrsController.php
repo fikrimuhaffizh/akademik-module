@@ -48,7 +48,7 @@ class KrsController extends Controller
     public function data(Request $request)
     {
         $query = Krs::with(['mahasiswa.prodi', 'periodeAkademik'])
-            ->select('akmhs_krs.*');
+            ->select('akd_krs.*');
 
         return Datatables::of($query)
             ->editColumn('mahasiswa_id', fn($row) => $row->mahasiswa?->nama ?? '-')
@@ -158,7 +158,7 @@ class KrsController extends Controller
         }
 
         return ['status' => 'aktif', 'tgl_mulai' => $event->tgl_mulai, 'tgl_selesai' => $event->tgl_selesai,
-            'pesan' => 'Pengisian KRS dibuka ' . $event->tgl_mulai->translatedFormat('d M Y') . ' s.d. ' . $event->tgl_selesai->translatedFormat('d M Y') . '.'];
+            'pesan' => 'Pengisian KRS dibuka ' . formatTanggalIndo($event->tgl_mulai) . ' s.d. ' . formatTanggalIndo($event->tgl_selesai) . '.'];
     }
 
     protected function getRiwayatKrs(Mahasiswa $mahasiswa): array

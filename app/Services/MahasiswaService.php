@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Modules\Akademik\Models\Biodata;
 use Modules\Akademik\Models\Cekal;
+use Modules\Akademik\Models\Cuti;
 
 class MahasiswaService
 {
@@ -56,6 +57,19 @@ class MahasiswaService
         $id = is_int($mahasiswaId) ? $mahasiswaId : decryptIdIfEncrypted($mahasiswaId);
 
         return Cekal::where('mahasiswa_id', $id)->where('is_aktif', true)->exists();
+    }
+
+    /**
+     * Cek apakah mahasiswa sedang cuti aktif (status disetujui) pada periode tsb.
+     */
+    public function isCutiAktif(string|int $mahasiswaId, ?int $periodeAkademikId = null): bool
+    {
+        $id = is_int($mahasiswaId) ? $mahasiswaId : decryptIdIfEncrypted($mahasiswaId);
+
+        return Cuti::where('mahasiswa_id', $id)
+            ->where('status', 'disetujui')
+            ->when($periodeAkademikId, fn ($q) => $q->where('periode_akademik_id', $periodeAkademikId))
+            ->exists();
     }
 
     /**

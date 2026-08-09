@@ -96,4 +96,32 @@ class Mahasiswa extends Model
     {
         return $this->hasMany(Cuti::class, 'mahasiswa_id', 'mahasiswa_id');
     }
+
+    public function scopeAktif($query)
+    {
+        return $query->where('status', 'aktif');
+    }
+
+    /**
+     * Status keaktifan mahasiswa: kolom status 'aktif' DAN tidak sedang
+     * dicekal / cuti aktif.
+     */
+    public function getIsActiveAttribute(): bool
+    {
+        if ($this->status !== 'aktif') {
+            return false;
+        }
+
+        return ! ($this->cekalAktif()->exists() || $this->cutiAktif()->exists());
+    }
+
+    protected function cekalAktif(): HasMany
+    {
+        return $this->hasMany(Cekal::class, 'mahasiswa_id', 'mahasiswa_id')->where('is_aktif', true);
+    }
+
+    protected function cutiAktif(): HasMany
+    {
+        return $this->hasMany(Cuti::class, 'mahasiswa_id', 'mahasiswa_id')->where('status', 'disetujui');
+    }
 }

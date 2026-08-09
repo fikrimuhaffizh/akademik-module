@@ -24,7 +24,7 @@ class BiodataRequest extends BaseRequest
             'provinsi_kode' => ['nullable', 'string', 'max:10'],
             'kabupaten_kode' => ['nullable', 'string', 'max:10'],
             'kecamatan_kode' => ['nullable', 'string', 'max:10'],
-            'kelurahan_kode' => ['nullable', 'string', 'max:10'],
+            'kelurahan_kode' => ['nullable', 'string', 'max:14'],
             'kode_pos' => ['nullable', 'string', 'max:10'],
             'nama_ayah' => ['nullable', 'string', 'max:255'],
             'nama_ibu' => ['nullable', 'string', 'max:255'],

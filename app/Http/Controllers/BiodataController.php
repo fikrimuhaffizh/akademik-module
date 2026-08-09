@@ -1,11 +1,11 @@
 <?php
-
 namespace Modules\Akademik\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
 use Modules\Akademik\Http\Requests\BiodataRequest;
 use Modules\Akademik\Services\BiodataService;
-use Illuminate\Http\Request;
+use Modules\Referensi\Services\WilayahService;
 use Yajra\DataTables\Facades\DataTables;
 
 class BiodataController extends Controller
@@ -29,8 +29,8 @@ class BiodataController extends Controller
 
         return DataTables::of($query)
             ->addIndexColumn()
-            ->addColumn('action', fn ($row) => view('components.ui.datatables-actions', [
-                'editUrl' => route('akd.biodata.edit', encryptId($row->biodata_id)),
+            ->addColumn('action', fn($row) => view('components.ui.datatables-actions', [
+                'editUrl'   => route('akd.biodata.edit', encryptId($row->biodata_id)),
                 'editModal' => true,
                 'deleteUrl' => route('akd.biodata.destroy', encryptId($row->biodata_id)),
             ])->render())
@@ -40,7 +40,9 @@ class BiodataController extends Controller
 
     public function create()
     {
-        return view('akademik::pages.biodata.create-edit-ajax');
+        $wilayahData = app(WilayahService::class)->getAllForSelect2($row->kecamatan_kode ?? null);
+
+        return view('akademik::pages.biodata.create-edit-ajax', compact('wilayahData'));
     }
 
     public function store(BiodataRequest $request)
@@ -51,8 +53,10 @@ class BiodataController extends Controller
 
     public function edit(string $id)
     {
-        $row = $this->service->findById($id);
-        return view('akademik::pages.biodata.create-edit-ajax', compact('row'));
+        $row         = $this->service->findById($id);
+        $wilayahData = app(WilayahService::class)->getAllForSelect2();
+
+        return view('akademik::pages.biodata.create-edit-ajax', compact('row', 'wilayahData'));
     }
 
     public function update(BiodataRequest $request, string $id)

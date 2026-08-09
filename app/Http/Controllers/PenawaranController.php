@@ -77,10 +77,10 @@ class PenawaranController extends Controller
     {
         return DataTables::of($this->service->getFilteredQuery($request->all()))
             ->addIndexColumn()
-            ->editColumn('periodeAkademik', fn ($r) => $r->periodeAkademik?->nama ?? '-')
+            ->addColumn('periodeAkademik', fn ($r) => $r->periodeAkademik?->nama ?? '-')
             ->editColumn('mata_kuliah_id', fn ($r) => $r->kurikulumMataKuliah?->mataKuliah ? ($r->kurikulumMataKuliah->mataKuliah->kode . ' - ' . $r->kurikulumMataKuliah->mataKuliah->nama) : '-')
-            ->editColumn('semester', fn ($r) => $r->kurikulumMataKuliah?->semester ?? '-')
-            ->editColumn('jenis', fn ($r) => $r->is_wajib
+            ->addColumn('semester', fn ($r) => $r->kurikulumMataKuliah?->semester ?? '-')
+            ->addColumn('jenis', fn ($r) => $r->is_wajib
                 ? '<span class="status status-info">Wajib</span>'
                 : '<span class="status status-warning">Pilihan</span>' . ($r->grup_pilihan ? ' <small class="text-muted">' . e($r->grup_pilihan) . '</small>' : ''))
             ->editColumn('prodi_id', fn ($r) => $r->prodi_id ?? '-')

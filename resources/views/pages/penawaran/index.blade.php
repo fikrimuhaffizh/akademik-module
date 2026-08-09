@@ -18,10 +18,10 @@
             <x-ui.datatable id="table-penawaran" route="{{ route('akd.penawaran.data') }}"
                 :columns="[
                     ['data' => 'DT_RowIndex', 'title' => '#', 'orderable' => false, 'searchable' => false, 'class' => 'text-center', 'width' => '50px'],
-                    ['data' => 'periodeAkademik', 'title' => 'Periode'],
+                    ['data' => 'periodeAkademik', 'title' => 'Periode', 'orderable' => false, 'searchable' => false],
                     ['data' => 'mata_kuliah_id', 'title' => 'Mata Kuliah'],
-                    ['data' => 'semester', 'title' => 'Smstr', 'class' => 'text-center', 'width' => '70px'],
-                    ['data' => 'jenis', 'title' => 'Jenis (Wajib/Pilihan)', 'class' => 'text-center'],
+                    ['data' => 'semester', 'title' => 'Smstr', 'class' => 'text-center', 'width' => '70px', 'orderable' => false, 'searchable' => false],
+                    ['data' => 'jenis', 'title' => 'Jenis (Wajib/Pilihan)', 'class' => 'text-center', 'orderable' => false, 'searchable' => false],
                     ['data' => 'prodi_id', 'title' => 'Prodi'],
                     ['data' => 'is_aktif', 'title' => 'Status', 'class' => 'text-center'],
                     ['data' => 'action', 'title' => 'Aksi', 'orderable' => false, 'searchable' => false, 'class' => 'text-center', 'width' => '100px'],

@@ -32,7 +32,7 @@
                                     </span>
                                 </td>
                                 <td>{{ $record->disetujui_oleh ?? '-' }}</td>
-                                <td>{{ $record->tgl_disetujui ? Carbon::parse($record->tgl_disetujui)->format('d/m/Y') : '-' }}</td>
+                                <td>{{ formatTanggalIndo($record->tgl_disetujui) }}</td>
                             </tr>
                         @endforeach
                     </tbody>

@@ -33,8 +33,8 @@
                                         <span class="status status-success">Dicabut</span>
                                     @endif
                                 </td>
-                                <td>{{ $record->tgl_mulai ? Carbon::parse($record->tgl_mulai)->format('d/m/Y') : '-' }}</td>
-                                <td>{{ $record->tgl_selesai ? Carbon::parse($record->tgl_selesai)->format('d/m/Y') : '-' }}</td>
+                                <td>{{ formatTanggalIndo($record->tgl_mulai) }}</td>
+                                <td>{{ formatTanggalIndo($record->tgl_selesai) }}</td>
                             </tr>
                         @endforeach
                     </tbody>

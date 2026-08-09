@@ -17,11 +17,11 @@
             <x-ui.datatable id="table-jadwal-kuliah" route="{{ route('akd.jadwal-akd.data') }}"
                 :columns="[
                     ['data' => 'DT_RowIndex', 'title' => '#', 'orderable' => false, 'searchable' => false, 'class' => 'text-center', 'width' => '50px'],
-                    ['data' => 'kelas', 'title' => 'Kelas'],
+                    ['data' => 'kelas', 'title' => 'Kelas', 'orderable' => false, 'searchable' => false],
                     ['data' => 'hari', 'title' => 'Hari', 'class' => 'text-center'],
-                    ['data' => 'waktu', 'title' => 'Waktu', 'class' => 'text-center'],
-                    ['data' => 'ruang', 'title' => 'Ruang/Online', 'class' => 'text-center'],
-                    ['data' => 'status', 'title' => 'Status', 'class' => 'text-center'],
+                    ['data' => 'waktu', 'title' => 'Waktu', 'class' => 'text-center', 'orderable' => false, 'searchable' => false],
+                    ['data' => 'ruang', 'title' => 'Ruang/Online', 'class' => 'text-center', 'orderable' => false, 'searchable' => false],
+                    ['data' => 'status', 'title' => 'Status', 'class' => 'text-center', 'orderable' => false, 'searchable' => false],
                     ['data' => 'action', 'title' => 'Aksi', 'orderable' => false, 'searchable' => false, 'class' => 'text-center', 'width' => '100px'],
                 ]" />
         </x-ui.card-body>

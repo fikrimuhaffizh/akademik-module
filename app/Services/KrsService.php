@@ -1,21 +1,20 @@
 <?php
-
 namespace Modules\Akademik\Services;
 
-use Modules\Kurikulum\Models\PrasyaratMataKuliah;
-use Modules\Akademik\Models\JadwalKuliah;
-use Modules\Akademik\Models\KelasKuliah;
-use Modules\Akademik\Models\KalenderAkademik;
-use Modules\Akademik\Models\Krs;
-use Modules\Akademik\Models\KrsDetail;
-use Modules\Akademik\Services\MahasiswaService;
-use Modules\Akademik\Services\NilaiService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Validation\ValidationException;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Collection as SupportCollection;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
+use Modules\Akademik\Models\JadwalKuliah;
+use Modules\Akademik\Models\KalenderAkademik;
+use Modules\Akademik\Models\KelasKuliah;
+use Modules\Akademik\Models\Krs;
+use Modules\Akademik\Models\KrsDetail;
 use Modules\Akademik\Models\Mahasiswa;
+use Modules\Akademik\Services\MahasiswaService;
+use Modules\Akademik\Services\NilaiService;
+use Modules\Kurikulum\Models\PrasyaratMataKuliah;
 
 class KrsService
 {
@@ -48,7 +47,7 @@ class KrsService
         return Krs::with('periodeAkademik')->get();
     }
 
-    public function findById(string|int $id): Krs
+    public function findById(string | int $id): Krs
     {
         return Krs::with(['periodeAkademik', 'details'])->findOrFail(decryptIdIfEncrypted($id));
     }
@@ -69,7 +68,7 @@ class KrsService
 
             $this->validateKrs($data['mahasiswa_id'], $data['periode_akademik_id'], $kelasIds);
             $data['total_sks'] = $this->calculateTotalSks($kelasIds);
-            $entity = Krs::create($data);
+            $entity            = Krs::create($data);
             $this->syncDetails($entity, $kelasIds);
             logActivity('perkuliahan', 'Menambah KRS', $entity);
 
@@ -77,10 +76,10 @@ class KrsService
         });
     }
 
-    public function update(string|int $id, array $data): Krs
+    public function update(string | int $id, array $data): Krs
     {
         return DB::transaction(function () use ($id, $data) {
-            $entity = $this->findById($id);
+            $entity   = $this->findById($id);
             $kelasIds = $data['kelas_ids'] ?? $entity->details()->where('status', 'aktif')->pluck('kelas_id')->all();
             unset($data['kelas_ids']);
 
@@ -94,7 +93,7 @@ class KrsService
         });
     }
 
-    public function delete(string|int $id): bool
+    public function delete(string | int $id): bool
     {
         return DB::transaction(function () use ($id) {
             $entity = $this->findById($id);
@@ -109,10 +108,13 @@ class KrsService
         $mahasiswa = Mahasiswa::findOrFail($mahasiswaId);
 
         if ($this->mahasiswaService->isCekal($mahasiswaId)) {
+            if ($this->mahasiswaService->isCutiAktif($mahasiswaId, $periodeAkademikId)) {
+                $this->failValidation('Mahasiswa sedang cuti dan tidak dapat mengisi KRS.');
+            }
             $this->failValidation('Mahasiswa sedang dicekal dan tidak dapat mengisi KRS.');
         }
 
-        $angkatan = $mahasiswa->angkatan;
+        $angkatan       = $mahasiswa->angkatan;
         $prodiOrgunitId = $mahasiswa->prodi_id;
 
         if (! $this->isKrsOpen($periodeAkademikId, $prodiOrgunitId, $angkatan)) {
@@ -120,13 +122,13 @@ class KrsService
         }
 
         $kelasIds = array_values(array_unique(array_map('intval', $kelasIds)));
-        $kelas = KelasKuliah::with('penawaran.kurikulumMataKuliah.mataKuliah', 'jadwalKuliahs')->whereIn('kelas_id', $kelasIds)->get();
+        $kelas    = KelasKuliah::with('penawaran.kurikulumMataKuliah.mataKuliah', 'jadwalKuliahs')->whereIn('kelas_id', $kelasIds)->get();
 
         if ($kelas->count() !== count($kelasIds)) {
             $this->failValidation('Ada kelas kuliah yang tidak valid.');
         }
 
-        $invalidPeriode = $kelas->contains(fn ($item) => (int) $item->penawaran?->periode_akademik_id !== $periodeAkademikId);
+        $invalidPeriode = $kelas->contains(fn($item) => (int) $item->penawaran?->periode_akademik_id !== $periodeAkademikId);
         if ($invalidPeriode) {
             $this->failValidation('Semua kelas harus berasal dari periode akademik yang sama dengan KRS.');
         }
@@ -154,8 +156,8 @@ class KrsService
         }
 
         // === Kuota: tiap kelas gak boleh lewat kapasitas (terisi+1 > kapasitas) ===
-        $terisi = DB::table('akmhs_krs_detail as d')
-            ->join('akmhs_krs as k', 'd.krs_id', '=', 'k.krs_id')
+        $terisi = DB::table('akd_krs_detail as d')
+            ->join('akd_krs as k', 'd.krs_id', '=', 'k.krs_id')
             ->whereIn('d.kelas_id', $kelasIds)
             ->where('d.status', 'aktif')
             ->whereNull('d.deleted_at')
@@ -165,15 +167,15 @@ class KrsService
             ->pluck('terisi', 'kelas_id');
 
         foreach ($kelas as $item) {
-            $sudah = (int) ($terisi[$item->kelas_id] ?? 0);
+            $sudah     = (int) ($terisi[$item->kelas_id] ?? 0);
             $kapasitas = (int) ($item->kapasitas ?? 0);
             if ($kapasitas > 0 && $sudah + 1 > $kapasitas) {
-                $namaMk = $item->penawaran?->kurikulumMataKuliah?->mataKuliah?->nama ?? ('Kelas '.$item->nama_kelas);
+                $namaMk = $item->penawaran?->kurikulumMataKuliah?->mataKuliah?->nama ?? ('Kelas ' . $item->nama_kelas);
                 $this->failValidation("Kuota kelas {$namaMk} penuh ({$sudah}/{$kapasitas}).");
             }
         }
 
-        $totalSks = $kelas->sum(fn ($item) => (int) ($item->penawaran?->kurikulumMataKuliah?->mataKuliah?->sks ?? 0));
+        $totalSks = $kelas->sum(fn($item) => (int) ($item->penawaran?->kurikulumMataKuliah?->mataKuliah?->sks ?? 0));
         $batasSks = $this->batasSksService->getBatasByIpk($this->nilaiService->hitungIpk($mahasiswaId), $periodeAkademikId);
 
         if ($totalSks > $batasSks) {
@@ -209,8 +211,8 @@ class KrsService
             ->get();
 
         foreach ($prasyaratList as $prasyarat) {
-            $namaMk = $prasyarat->mataKuliah?->nama ?? 'MK ID '.$prasyarat->mata_kuliah_id;
-            $namaPrasyarat = $prasyarat->prasyaratMataKuliah?->nama ?? 'MK ID '.$prasyarat->prasyarat_mk_id;
+            $namaMk        = $prasyarat->mataKuliah?->nama ?? 'MK ID ' . $prasyarat->mata_kuliah_id;
+            $namaPrasyarat = $prasyarat->prasyaratMataKuliah?->nama ?? 'MK ID ' . $prasyarat->prasyarat_mk_id;
 
             if (! $this->nilaiService->hasLulusPrasyarat($mahasiswaId, $prasyarat->prasyarat_mk_id)) {
                 $this->failValidation(
@@ -259,12 +261,12 @@ class KrsService
                 // Check against existing enrollments
                 $conflict = $existingJadwal->first(function ($existing) use ($jadwal) {
                     return $existing->hari === $jadwal->hari
-                        && $existing->jam_mulai < $jadwal->jam_selesai
-                        && $existing->jam_selesai > $jadwal->jam_mulai;
+                    && $existing->jam_mulai < $jadwal->jam_selesai
+                    && $existing->jam_selesai > $jadwal->jam_mulai;
                 });
 
                 if ($conflict) {
-                    $mkBaru = $kelas->penawaran?->kurikulumMataKuliah?->mataKuliah?->nama ?? 'MK';
+                    $mkBaru     = $kelas->penawaran?->kurikulumMataKuliah?->mataKuliah?->nama ?? 'MK';
                     $mkExisting = $conflict->kelas?->penawaran?->kurikulumMataKuliah?->mataKuliah?->nama ?? 'MK';
                     $this->failValidation(
                         "Bentrok jadwal: {$mkBaru} ({$jadwal->hari} {$jadwal->jam_mulai}-{$jadwal->jam_selesai}) beririsan dengan {$mkExisting}."
@@ -303,7 +305,7 @@ class KrsService
         return (int) KelasKuliah::with('penawaran.kurikulumMataKuliah.mataKuliah')
             ->whereIn('kelas_id', array_values(array_unique(array_map('intval', $kelasIds))))
             ->get()
-            ->sum(fn ($item) => (int) ($item->penawaran?->kurikulumMataKuliah?->mataKuliah?->sks ?? 0));
+            ->sum(fn($item) => (int) ($item->penawaran?->kurikulumMataKuliah?->mataKuliah?->sks ?? 0));
     }
 
     protected function syncDetails(Krs $krs, array $kelasIds): void
@@ -342,10 +344,10 @@ class KrsService
         }
 
         return $event->contains(function ($e) use ($prodiOrgunitId, $angkatan) {
-            $meta = $e->metadata ?? [];
-            $prodiOk = empty($meta['prodi_id']) || in_array($prodiOrgunitId, (array) $meta['prodi_id'], true);
+            $meta       = $e->metadata ?? [];
+            $prodiOk    = empty($meta['prodi_id']) || in_array($prodiOrgunitId, (array) $meta['prodi_id'], true);
             $angkatanOk = empty($meta['angkatan']) || $angkatan === null
-                || in_array($angkatan, (array) $meta['angkatan'], false);
+            || in_array($angkatan, (array) $meta['angkatan'], false);
             return $prodiOk && $angkatanOk;
         });
     }
@@ -356,7 +358,7 @@ class KrsService
      */
     protected function assertKrsOpen(int $mahasiswaId, int $periodeAkademikId): void
     {
-        $mahasiswa = Mahasiswa::findOrFail($mahasiswaId);
+        $mahasiswa      = Mahasiswa::findOrFail($mahasiswaId);
         $prodiOrgunitId = $mahasiswa->prodi_id;
 
         if (! $this->isKrsOpen($periodeAkademikId, $prodiOrgunitId, $mahasiswa->angkatan)) {
@@ -371,7 +373,7 @@ class KrsService
      */
     public function getMkKelasPenawaranMhs(int $mahasiswaId, int $periodeAkademikId): SupportCollection
     {
-        $mahasiswa = Mahasiswa::findOrFail($mahasiswaId);
+        $mahasiswa      = Mahasiswa::findOrFail($mahasiswaId);
         $prodiOrgunitId = $mahasiswa->prodi_id;
 
         $krs = Krs::where('mahasiswa_id', $mahasiswaId)
@@ -384,28 +386,27 @@ class KrsService
             : [];
 
         return KelasKuliah::with([
-                'penawaran.kurikulumMataKuliah.mataKuliah',
-                'penawaran.periodeAkademik',
-                'jadwalKuliahs',
-                'pembebananDosens.pegawai',
-            ])
+            'penawaran.kurikulumMataKuliah.mataKuliah',
+            'penawaran.periodeAkademik',
+            'jadwalKuliahs',
+            'pembebananDosens.pegawai',
+        ])
             ->where('is_aktif', true)
-            ->whereHas('penawaran', fn (Builder $q) => $q
-                ->where('periode_akademik_id', $periodeAkademikId)
-                ->where('prodi_id', $prodiOrgunitId)
-                ->where('kurikulum_kode', $mahasiswa->kurikulum_kode))
-            ->leftJoin('view_akmhs_kuota_kelas as q', 'q.kelas_id', '=', 'akper_kelas_akd.kelas_id')
-            ->select('akper_kelas_akd.*', DB::raw('COALESCE(q.terisi, 0) as terisi'))
+            ->whereHas('penawaran', fn(Builder $q) => $q
+                    ->where('periode_akademik_id', $periodeAkademikId)
+                    ->where('prodi_id', $prodiOrgunitId)
+                    ->where('kurikulum_kode', $mahasiswa->kurikulum_kode))
+            ->withCount(['krsDetails as terisi' => fn(Builder $q) => $q->where('status', 'aktif')])
             ->orderBy('nama_kelas')
             ->get()
             ->map(function (KelasKuliah $kelas) use ($ambilKelasIds) {
-                $mk = $kelas->penawaran?->kurikulumMataKuliah?->mataKuliah;
+                $mk    = $kelas->penawaran?->kurikulumMataKuliah?->mataKuliah;
                 $dosen = $kelas->pembebananDosens
-                    ->filter(fn ($p) => ($p->peran ?? 'dosen') === 'dosen')
+                    ->filter(fn($p) => ($p->peran ?? 'dosen') === 'dosen')
                     ->first()?->pegawai;
 
                 return [
-                    'kelas_id'            => $kelas->kelas_id,
+                    'kelas_id'           => $kelas->kelas_id,
                     'encrypted_kelas_id' => encryptId($kelas->kelas_id),
                     'nama_kelas'         => $kelas->nama_kelas,
                     'kode_mk'            => $mk?->kode,
@@ -414,15 +415,14 @@ class KrsService
                     'kapasitas'          => (int) ($kelas->kapasitas ?? 0),
                     'terisi'             => (int) ($kelas->terisi ?? 0),
                     'sisa'               => max(0, (int) ($kelas->kapasitas ?? 0) - (int) ($kelas->terisi ?? 0)),
-                    'ruang'              => $kelas->jadwalKuliahs->filter(fn ($j) => $j->ruang)->first()?->ruang?->nama
-                        ?? $kelas->jadwalKuliahs->first()?->ruang?->nama ?? '-',
+                    'ruang'              => $kelas->jadwalKuliahs->filter(fn($j) => $j->ruang)->first()?->ruang?->nama ?? $kelas->jadwalKuliahs->first()?->ruang?->nama ?? '-',
                     'dosen'              => $dosen?->nama,
-                    'jadwal'             => $kelas->jadwalKuliahs->map(fn ($j) => [
-                        'hari'       => $j->hari,
-                        'jam_mulai'  => $j->jam_mulai,
-                        'jam_selesai'=> $j->jam_selesai,
+                    'jadwal'             => $kelas->jadwalKuliahs->map(fn($j) => [
+                        'hari'        => $j->hari,
+                        'jam_mulai'   => $j->jam_mulai,
+                        'jam_selesai' => $j->jam_selesai,
                     ]),
-                    'sudah_ambil'       => in_array($kelas->kelas_id, $ambilKelasIds, true),
+                    'sudah_ambil'        => in_array($kelas->kelas_id, $ambilKelasIds, true),
                 ];
             });
     }
@@ -442,11 +442,11 @@ class KrsService
 
             if (! $krs) {
                 $krs = Krs::create([
-                    'tenant_id'             => sys_tenant_id(),
-                    'mahasiswa_id'         => $mahasiswaId,
-                    'periode_akademik_id'  => $periodeAkademikId,
-                    'status'                => 'draft',
-                    'total_sks'             => 0,
+                    'tenant_id'           => sys_tenant_id(),
+                    'mahasiswa_id'        => $mahasiswaId,
+                    'periode_akademik_id' => $periodeAkademikId,
+                    'status'              => 'draft',
+                    'total_sks'           => 0,
                 ]);
             }
 
@@ -501,18 +501,18 @@ class KrsService
     public function getMonitoring(int $periodeAkademikId): SupportCollection
     {
         $mahasiswas = Mahasiswa::with([
-                'krs' => fn ($q) => $q->where('periode_akademik_id', $periodeAkademikId),
-            ])
+            'krs' => fn($q) => $q->where('periode_akademik_id', $periodeAkademikId),
+        ])
             ->where('status', 'aktif')
             ->orderBy('angkatan')
             ->orderBy('prodi_id')
             ->get();
 
         $grouped = $mahasiswas->groupBy(
-            fn ($m) => $m->angkatan.'|'.$m->prodi_id
+            fn($m) => $m->angkatan . '|' . $m->prodi_id
         );
 
-        $prodiIds = $grouped->keys()->map(fn ($k) => (int) explode('|', $k)[1])->unique()->values();
+        $prodiIds  = $grouped->keys()->map(fn($k) => (int) explode('|', $k)[1])->unique()->values();
         $prodiNama = \Modules\HrCore\Models\StrukturOrganisasi::whereIn('orgunit_id', $prodiIds)
             ->pluck('name', 'orgunit_id');
 
@@ -520,11 +520,11 @@ class KrsService
         foreach ($grouped as $key => $items) {
             [$angkatan, $prodiId] = explode('|', $key);
 
-            $belum    = 0;
-            $terisi   = 0;
+            $belum     = 0;
+            $terisi    = 0;
             $diajukan  = 0;
             $disetujui = 0;
-            $totalSks = 0;
+            $totalSks  = 0;
 
             foreach ($items as $m) {
                 $krs = $m->krs->first();
@@ -546,12 +546,12 @@ class KrsService
                 'angkatan'   => $angkatan,
                 'prodi_id'   => (int) $prodiId,
                 'prodi_nama' => $prodiNama[$prodiId] ?? '-',
-                'total'       => $items->count(),
+                'total'      => $items->count(),
                 'belum'      => $belum,
-                'terisi'      => $terisi,
-                'diajukan'    => $diajukan,
+                'terisi'     => $terisi,
+                'diajukan'   => $diajukan,
                 'disetujui'  => $disetujui,
-                'total_sks'   => $totalSks,
+                'total_sks'  => $totalSks,
             ]);
         }
 

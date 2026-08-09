@@ -14,7 +14,7 @@ class NilaiUpdateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'nilai_angka' => 'required|numeric|min:0|max:4',
+            'nilai_angka' => 'required|numeric|min:0|max:100',
         ];
     }
 }

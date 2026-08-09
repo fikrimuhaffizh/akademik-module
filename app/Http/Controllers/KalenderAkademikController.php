@@ -32,8 +32,8 @@ class KalenderAkademikController extends Controller
     {
         return DataTables::of($this->service->getFilteredQuery($request->all()))
             ->addIndexColumn()
-            ->editColumn('tgl_mulai', fn ($r) => $r->tgl_mulai?->format('d M Y') ?? '-')
-            ->editColumn('tgl_selesai', fn ($r) => $r->tgl_selesai?->format('d M Y') ?? '-')
+            ->editColumn('tgl_mulai', fn ($r) => formatTanggalIndo($r->tgl_mulai))
+            ->editColumn('tgl_selesai', fn ($r) => formatTanggalIndo($r->tgl_selesai))
             ->addColumn('periodeAkademik_nama', fn ($r) => $r->periodeAkademik?->nama ?? '-')
             ->addColumn('action', fn ($r) => view('components.ui.datatables-actions', ['editUrl' => route('akd.kalender-akademik.edit', $r->encrypted_kalender_id), 'editModal' => true, 'deleteUrl' => route('akd.kalender-akademik.destroy', $r->encrypted_kalender_id)])->render())
             ->rawColumns(['action'])->make(true);

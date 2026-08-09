@@ -35,7 +35,7 @@ class PembebananController extends Controller
     {
         return DataTables::of($this->service->getFilteredQuery($request->all()))
             ->addIndexColumn()
-            ->editColumn('kelas', function ($r) {
+            ->addColumn('kelas', function ($r) {
                 $namaKelas = $r->kelas?->nama_kelas;
                 $namaMataKuliah = $r->kelas?->penawaran?->kurikulumMataKuliah?->mataKuliah?->nama;
 
@@ -45,7 +45,7 @@ class PembebananController extends Controller
 
                 return $namaMataKuliah ? "{$namaKelas} - {$namaMataKuliah}" : $namaKelas;
             })
-            ->editColumn('pegawai', function ($r) {
+            ->addColumn('pegawai', function ($r) {
                 $pegawai = $this->pegawaiService->findById($r->pegawai_id);
 
                 return $pegawai ? $pegawai->nama : '-';

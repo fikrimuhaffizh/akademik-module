@@ -43,8 +43,8 @@
                                 <span class="badge bg-red-lt text-red">Belum Mulai</span>
                             @endif
                         </td>
-                        <td>{{ $item->waktu_mulai?->format('d M Y H:i') ?? '-' }}</td>
-                        <td>{{ $item->waktu_selesai?->format('d M Y H:i') ?? '-' }}</td>
+                        <td>{{ formatTanggalIndo($item->waktu_mulai) }}</td>
+                        <td>{{ formatTanggalIndo($item->waktu_selesai) }}</td>
                     </tr>
                     @empty
                     <tr>

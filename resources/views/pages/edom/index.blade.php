@@ -35,7 +35,7 @@
                     </div>
                     <div class="datagrid-item">
                         <div class="datagrid-title">Jadwal</div>
-                        <div class="datagrid-content">{{ $event->tgl_mulai?->format('d M Y') }} s.d. {{ $event->tgl_selesai?->format('d M Y') }}</div>
+                        <div class="datagrid-content">{{ formatTanggalIndo($event->tgl_mulai) }} s.d. {{ formatTanggalIndo($event->tgl_selesai) }}</div>
                     </div>
                     <div class="datagrid-item">
                         <div class="datagrid-title">Mahasiswa</div>

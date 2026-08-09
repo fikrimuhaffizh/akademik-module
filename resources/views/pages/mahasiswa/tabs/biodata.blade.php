@@ -14,7 +14,7 @@
                     <table class="table table-borderless">
                         <tr><td class="text-secondary w-40">NIK</td><td>{{ $biodata->nik ?? '-' }}</td></tr>
                         <tr><td class="text-secondary">Tempat Lahir</td><td>{{ $biodata->tempat_lahir ?? '-' }}</td></tr>
-                        <tr><td class="text-secondary">Tanggal Lahir</td><td>{{ $biodata->tgl_lahir?->format('d/m/Y') ?? '-' }}</td></tr>
+                        <tr><td class="text-secondary">Tanggal Lahir</td><td>{{ formatTanggalIndo($biodata->tgl_lahir) }}</td></tr>
                         <tr><td class="text-secondary">Jenis Kelamin</td><td>{{ $biodata->jenis_kelamin === 'L' ? 'Laki-laki' : 'Perempuan' }}</td></tr>
                         <tr><td class="text-secondary">Agama</td><td>{{ $biodata->agama ?? '-' }}</td></tr>
                         <tr><td class="text-secondary">Kewarganegaraan</td><td>{{ $biodata->kewarganegaraan ?? 'WNI' }}</td></tr>

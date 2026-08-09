@@ -13,7 +13,7 @@ class KonversiNilai extends Model
     use BelongsToTenant, Blameable, HashidBinding, SoftDeletes;
 
     protected $table = 'akd_konversi_nilai';
-    protected $primaryKey = 'konversi_nilai_id';
+    protected $primaryKey = 'konversi_id';
     protected $fillable = [
         'tenant_id', 'mahasiswa_id', 'mata_kuliah_id', 'nilai_asal', 'nilai_konversi',
         'sks', 'catatan',

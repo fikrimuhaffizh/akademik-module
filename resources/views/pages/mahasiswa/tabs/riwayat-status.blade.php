@@ -24,7 +24,7 @@
                                         <i class="ti ti-arrow-right mx-2 text-secondary"></i>
                                         <span class="status status-primary">{{ ucfirst(str_replace('_', ' ', $record->status_baru)) }}</span>
                                     </div>
-                                    <span class="text-secondary small">{{ $record->tgl_efektif ? Carbon::parse($record->tgl_efektif)->format('d/m/Y') : '-' }}</span>
+                                    <span class="text-secondary small">{{ formatTanggalIndo($record->tgl_efektif) }}</span>
                                 </div>
                                 @if($record->alasan)
                                     <p class="text-secondary mt-2 mb-0">{{ $record->alasan }}</p>

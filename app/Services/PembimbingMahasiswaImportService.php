@@ -6,11 +6,10 @@ use Modules\Akademik\Models\Mahasiswa;
 use Modules\Akademik\Models\PembimbingMahasiswa;
 use Modules\Akademik\Models\PeriodeAkademik;
 use Modules\HrCore\Models\Pegawai;
-use Modules\Sys\Contracts\ImportProcessorInterface;
 use Modules\Sys\Services\ImportService;
 use DB;
 
-class PembimbingMahasiswaImportService implements ImportProcessorInterface
+class PembimbingMahasiswaImportService
 {
     public function __construct(protected ImportService $importService) {}
 

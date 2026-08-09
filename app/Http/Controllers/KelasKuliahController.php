@@ -34,15 +34,15 @@ class KelasKuliahController extends Controller
 
     public function data(Request $request)
     {
-        $query = $this->kelasKuliahService->getDataQuery();
+        $query = $this->kelasKuliahService->getFilteredQuery(parseFilters($request, []));
 
         return DataTables::of($query)
             ->addIndexColumn()
-            ->editColumn('penawaran', fn ($r) => $r->penawaran?->kurikulumMataKuliah?->mataKuliah ? ($r->penawaran->kurikulumMataKuliah->mataKuliah->kode . ' - ' . $r->penawaran->kurikulumMataKuliah->mataKuliah->nama) : '-')
+            ->addColumn('penawaran', fn ($r) => $r->penawaran?->kurikulumMataKuliah?->mataKuliah ? ($r->penawaran->kurikulumMataKuliah->mataKuliah->kode . ' - ' . $r->penawaran->kurikulumMataKuliah->mataKuliah->nama) : '-')
             ->editColumn('nama_kelas', fn ($r) => $r->nama_kelas ?? ($r->refKelas?->label ?? '-'))
             ->editColumn('sistem_kuliah', fn ($r) => ucfirst($r->sistem_kuliah))
-            ->editColumn('dosen', fn ($r) => $r->pembebananDosens->where('peran', 'pengampu')->count() . ' pengampu')
-            ->editColumn('jadwal', fn ($r) => $r->jadwalKuliahs->count() . ' jadwal')
+            ->addColumn('dosen', fn ($r) => $r->pembebananDosens->where('peran', 'pengampu')->count() . ' pengampu')
+            ->addColumn('jadwal', fn ($r) => $r->jadwalKuliahs->count() . ' jadwal')
             ->editColumn('is_aktif', fn ($r) => $r->is_aktif ? '<span class="status status-success">Aktif</span>' : '<span class="status status-danger">Non Aktif</span>')
             ->addColumn('action', fn ($r) => view('components.ui.datatables-actions', [
                 'editUrl' => route('akd.kelas-akd.edit', $r->encrypted_kelas_id),

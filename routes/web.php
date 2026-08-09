@@ -17,6 +17,7 @@ use Modules\Akademik\Http\Controllers\MahasiswaImportController;
 use Modules\Akademik\Http\Controllers\NilaiController;
 use Modules\Akademik\Http\Controllers\PembebananController;
 use Modules\Akademik\Http\Controllers\PembimbingMahasiswaController;
+use Modules\Akademik\Http\Controllers\PembimbingMahasiswaImportController;
 use Modules\Akademik\Http\Controllers\PenawaranController;
 use Modules\Akademik\Http\Controllers\PeriodeAkademikController;
 use Modules\Akademik\Http\Controllers\RiwayatStatusController;

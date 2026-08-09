@@ -124,19 +124,14 @@ class NilaiService
 
     /**
      * Check if mahasiswa has passed a prerequisite MK (by Kurikulum MK ID).
-     * Maps prasyarat_mk_id (kurikulum) → akper_mata_kuliah via kur_mata_kuliah_id → checks akmhs_nilai_akhir.
+     * Cek mahasiswa sudah lulus MK prasyarat (prasyarat_mk_id = kur_mata_kuliah.mata_kuliah_id).
      */
     public function hasLulusPrasyarat(int $mahasiswaId, int $prasyaratMkId): bool
     {
-        $akperMkIds = MataKuliah::where('kur_mata_kuliah_id', $prasyaratMkId)
-            ->pluck('mata_kuliah_id');
-
-        if ($akperMkIds->isEmpty()) {
-            return true; // No Perkuliahan MK mapped — cannot enforce
-        }
-
+        // prasyarat_mk_id mengacu ke kur_mata_kuliah.mata_kuliah_id (single source Kurikulum),
+        // id yang sama dipakai Nilai.mata_kuliah_id — cek langsung tanpa tabel perantara.
         return Nilai::where('mahasiswa_id', $mahasiswaId)
-            ->whereIn('mata_kuliah_id', $akperMkIds)
+            ->where('mata_kuliah_id', $prasyaratMkId)
             ->where('is_lulus', true)
             ->exists();
     }

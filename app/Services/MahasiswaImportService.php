@@ -105,7 +105,7 @@ class MahasiswaImportService
                 'updated_at' => $now,
             ];
 
-            $softDeleted = DB::table('akmhs_mahasiswa')
+            $softDeleted = DB::table('akd_mahasiswa')
                 ->where('tenant_id', $tenantId)
                 ->whereNotNull('deleted_at')
                 ->where(function ($q) use ($data) {
@@ -116,7 +116,7 @@ class MahasiswaImportService
                 ->first();
 
             if ($softDeleted) {
-                DB::table('akmhs_mahasiswa')->where('mahasiswa_id', $softDeleted->mahasiswa_id)->update([
+                DB::table('akd_mahasiswa')->where('mahasiswa_id', $softDeleted->mahasiswa_id)->update([
                     'deleted_at' => null,
                     'updated_at' => $now,
                     'deleted_by' => null,
@@ -125,7 +125,7 @@ class MahasiswaImportService
 
             $mahasiswaId = null;
 
-            $existingMhs = DB::table('akmhs_mahasiswa')
+            $existingMhs = DB::table('akd_mahasiswa')
                 ->where('tenant_id', $tenantId)
                 ->whereNull('deleted_at')
                 ->where(function ($q) use ($data) {
@@ -136,16 +136,16 @@ class MahasiswaImportService
                 ->first();
 
             if ($existingMhs) {
-                DB::table('akmhs_mahasiswa')
+                DB::table('akd_mahasiswa')
                     ->where('mahasiswa_id', $existingMhs->mahasiswa_id)
                     ->update($mahasiswaPayload);
                 $mahasiswaId = $existingMhs->mahasiswa_id;
             } else {
                 $mahasiswaPayload['tenant_id'] = $tenantId;
                 $mahasiswaPayload['created_at'] = $now;
-                $mahasiswaId = DB::table('akmhs_mahasiswa')->insertGetId($mahasiswaPayload);
+                $mahasiswaId = DB::table('akd_mahasiswa')->insertGetId($mahasiswaPayload);
                 
-                DB::table('akmhs_biodata')->insert([
+                DB::table('akd_biodata')->insert([
                     'mahasiswa_id' => $mahasiswaId,
                     'tenant_id' => $tenantId,
                     'created_at' => $now,
@@ -190,7 +190,7 @@ class MahasiswaImportService
                     ]);
                 }
 
-                DB::table('akmhs_mahasiswa')
+                DB::table('akd_mahasiswa')
                     ->where('mahasiswa_id', $mahasiswaId)
                     ->update(['user_id' => $userId]);
             }
@@ -275,7 +275,7 @@ class MahasiswaImportService
             ? DB::table('users')->where('tenant_id', sys_tenant_id())->whereNull('deleted_at')->whereIn('email', $emails)->pluck('email')->all()
             : [];
         $existingNims = ! empty($nims)
-            ? DB::table('akmhs_mahasiswa')->where('tenant_id', sys_tenant_id())->whereNull('deleted_at')->whereIn('nim', $nims)->pluck('nim')->all()
+            ? DB::table('akd_mahasiswa')->where('tenant_id', sys_tenant_id())->whereNull('deleted_at')->whereIn('nim', $nims)->pluck('nim')->all()
             : [];
 
         foreach ($prepared as &$row) {

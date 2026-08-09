@@ -26,7 +26,7 @@
                                         {{ ucfirst($record->status) }}
                                     </span>
                                 </td>
-                                <td class="text-end text-secondary">{{ $record->created_at?->format('d/m/Y') }}</td>
+                                <td class="text-end text-secondary">{{ formatTanggalIndo($record->created_at) }}</td>
                             </tr>
                         @endforeach
                     </tbody>

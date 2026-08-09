@@ -5,6 +5,7 @@ namespace Modules\Akademik\Services;
 use Illuminate\Support\Facades\DB;
 use Modules\HrCore\Services\PegawaiService;
 use Modules\Akademik\Models\KelasKuliah;
+use Illuminate\Database\Eloquent\Builder;
 use Modules\Akademik\Models\PembebananDosen;
 use Modules\Akademik\Models\PenawaranMataKuliah;
 use Modules\Akademik\Models\RuangKuliah;
@@ -19,6 +20,30 @@ class KelasKuliahService
     public function getCount(): int
     {
         return KelasKuliah::count();
+    }
+
+    public function getFilteredQuery(array $filters = []): Builder
+    {
+        $query = $this->getDataQuery();
+
+        // Global search — support string maupun format DataTables search[value]
+        $searchValue = $filters['search'] ?? null;
+        if (is_array($searchValue)) {
+            $searchValue = $searchValue['value'] ?? null;
+        }
+        if ($searchValue !== null && $searchValue !== '') {
+            $search = (string) $searchValue;
+            $query->where(function ($q) use ($search) {
+                $q->where('nama_kelas', 'like', "%{$search}%")
+                  ->orWhere('sistem_kuliah', 'like', "%{$search}%")
+                  ->orWhereHas('penawaran.kurikulumMataKuliah.mataKuliah', function ($mq) use ($search) {
+                      $mq->where('kode', 'like', "%{$search}%")
+                         ->orWhere('nama', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        return $query;
     }
 
     public function getDataQuery()

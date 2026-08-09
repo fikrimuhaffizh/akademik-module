@@ -1,11 +1,10 @@
 <?php
-
 namespace Modules\Akademik\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
 use Modules\Akademik\Http\Requests\CekalRequest;
 use Modules\Akademik\Services\CekalService;
-use Illuminate\Http\Request;
 use Yajra\DataTables\Facades\DataTables;
 
 class CekalController extends Controller
@@ -29,8 +28,8 @@ class CekalController extends Controller
 
         return DataTables::of($query)
             ->addIndexColumn()
-            ->addColumn('action', fn ($row) => view('components.ui.datatables-actions', [
-                'editUrl' => route('akd.cekal.edit', encryptId($row->cekal_id)),
+            ->addColumn('action', fn($row) => view('components.ui.datatables-actions', [
+                'editUrl'   => route('akd.cekal.edit', encryptId($row->cekal_id)),
                 'editModal' => true,
                 'deleteUrl' => route('akd.cekal.destroy', encryptId($row->cekal_id)),
             ])->render())

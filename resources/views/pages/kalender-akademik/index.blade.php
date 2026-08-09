@@ -18,7 +18,7 @@
                 :columns="[
                     ['data' => 'DT_RowIndex', 'title' => '#', 'orderable' => false, 'searchable' => false, 'class' => 'text-center', 'width' => '50px'],
                     ['data' => 'nama_kegiatan', 'title' => 'Nama Kegiatan'],
-                    ['data' => 'periodeAkademik_nama', 'title' => 'Periode'],
+                    ['data' => 'periodeAkademik_nama', 'title' => 'Periode', 'orderable' => false, 'searchable' => false],
                     ['data' => 'jenis', 'title' => 'Jenis'],
                     ['data' => 'tgl_mulai', 'title' => 'Mulai', 'class' => 'text-center'],
                     ['data' => 'tgl_selesai', 'title' => 'Selesai', 'class' => 'text-center'],
