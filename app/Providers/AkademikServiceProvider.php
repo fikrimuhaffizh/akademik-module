@@ -22,7 +22,7 @@ class AkademikServiceProvider extends BaseModuleServiceProvider
                 'children'  => [
                     ['title' => 'Periode Akademik',  'route' => 'akd.periode-akademik.index',     'active_routes' => ['akd.periode-akademik.*'],     'icon' => 'calendar-event', 'permission' => 'akd.periode-akademik.view'],
                     ['title' => 'Kalender Akademik', 'route' => 'akd.kalender-akademik.index',    'active_routes' => ['akd.kalender-akademik.*'],    'icon' => 'calendar',       'permission' => 'akd.kalender-akademik.view'],
-                    ['title' => 'Ruang Kuliah',      'route' => 'akd.ruang-kuliah.index',         'active_routes' => ['akd.ruang-kuliah.*'],         'icon' => 'building-community', 'permission' => 'akd.ruang-kuliah.view'],
+                    ['title' => 'Ruang Kuliah',      'route' => 'akd.ruang-kuliah.index',         'active_routes' => ['akd.ruang-kuliah.*'],         'icon' => 'building-community', 'permission' => 'akd.ruang-akd.view'],
                 ],
             ],
 
@@ -33,8 +33,8 @@ class AkademikServiceProvider extends BaseModuleServiceProvider
                 'permission' => null,
                 'children'  => [
                     ['title' => 'Penawaran MK',     'route' => 'akd.penawaran.index',            'active_routes' => ['akd.penawaran.*'],            'icon' => 'book',           'permission' => 'akd.penawaran.view'],
-                    ['title' => 'Kelas Kuliah',     'route' => 'akd.kelas-kuliah.index',         'active_routes' => ['akd.kelas-kuliah.*'],         'icon' => 'school',         'permission' => 'akd.kelas-kuliah.view'],
-                    ['title' => 'Jadwal Kuliah',    'route' => 'akd.jadwal-kuliah.index',        'active_routes' => ['akd.jadwal-kuliah.*'],        'icon' => 'calendar-check', 'permission' => 'akd.jadwal-kuliah.view'],
+                    ['title' => 'Kelas Kuliah',     'route' => 'akd.kelas-kuliah.index',         'active_routes' => ['akd.kelas-kuliah.*'],         'icon' => 'school',         'permission' => 'akd.kelas-akd.view'],
+                    ['title' => 'Jadwal Kuliah',    'route' => 'akd.jadwal-kuliah.index',        'active_routes' => ['akd.jadwal-kuliah.*'],        'icon' => 'calendar-check', 'permission' => 'akd.jadwal-akd.view'],
                     ['title' => 'Pembebanan Dosen', 'route' => 'akd.pembebanan.index',           'active_routes' => ['akd.pembebanan.*'],           'icon' => 'user-check',     'permission' => 'akd.pembebanan.view'],
                 ],
             ],
