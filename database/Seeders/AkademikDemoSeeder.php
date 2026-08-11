@@ -138,9 +138,18 @@ class AkademikDemoSeeder extends Seeder
 
     private function seedNilaiAkhir(): void
     {
-        // Only if KRS details exist
-        $krsDetails = DB::table('akd_krs_detail')
-            ->where('tenant_id', $this->tenantId)
+        // Only if KRS details exist.
+        // akd_krs_detail tidak menyimpan mahasiswa_id / mata_kuliah_id —
+        // resolve lewat join: krs_detail -> akd_krs (mahasiswa) dan
+        // -> akd_kelas_kuliah -> akd_penawaran_mata_kuliah
+        // -> kur_kurikulum_mata_kuliah (mata_kuliah_id).
+        $krsDetails = DB::table('akd_krs_detail as kd')
+            ->join('akd_krs as k', 'k.krs_id', '=', 'kd.krs_id')
+            ->join('akd_kelas_kuliah as kk', 'kk.kelas_id', '=', 'kd.kelas_id')
+            ->join('akd_penawaran_mk as pmk', 'pmk.penawaran_id', '=', 'kk.penawaran_id')
+            ->join('kur_kurikulum_mata_kuliah as kmk', 'kmk.kur_mk_id', '=', 'pmk.kurikulum_mata_kuliah_id')
+            ->where('kd.tenant_id', $this->tenantId)
+            ->select('k.mahasiswa_id', 'kd.kelas_id', 'kmk.mata_kuliah_id')
             ->limit(10)
             ->get();
 
@@ -158,6 +167,7 @@ class AkademikDemoSeeder extends Seeder
                 [
                     'mahasiswa_id'       => $kd->mahasiswa_id ?? 0,
                     'kelas_id'           => $kd->kelas_id,
+                    'mata_kuliah_id'     => $kd->mata_kuliah_id ?? 0,
                     'periode_akademik_id' => $periode->periode_akademik_id,
                     'tenant_id'          => $this->tenantId,
                 ],
