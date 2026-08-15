@@ -37,33 +37,33 @@ Route::middleware(['auth', 'check.expired', 'module:akademik'])->prefix('akd')->
     // AKADEMIK (from Perkuliahan)
     // ═══════════════════════════════════════════════════════════
 
-    Route::get('/api/tahun-ajaran', [TahunAjaranController::class, 'data'])->name('tahun-ajaran.data');
+    Route::get('/tahun-ajaran/data', [TahunAjaranController::class, 'data'])->name('tahun-ajaran.data');
     Route::resource('tahun-ajaran', TahunAjaranController::class);
 
-    Route::get('/api/periode-akademik', [PeriodeAkademikController::class, 'data'])->name('periode-akademik.data');
+    Route::get('/periode-akademik/data', [PeriodeAkademikController::class, 'data'])->name('periode-akademik.data');
     Route::resource('periode-akademik', PeriodeAkademikController::class);
 
-    Route::get('/api/ruang-kuliah', [RuangKuliahController::class, 'data'])->name('ruang-kuliah.data');
+    Route::get('/ruang-kuliah/data', [RuangKuliahController::class, 'data'])->name('ruang-kuliah.data');
     Route::resource('ruang-kuliah', RuangKuliahController::class);
 
-    Route::get('/api/kalender-akademik', [KalenderAkademikController::class, 'data'])->name('kalender-akademik.data');
+    Route::get('/kalender-akademik/data', [KalenderAkademikController::class, 'data'])->name('kalender-akademik.data');
     Route::resource('kalender-akademik', KalenderAkademikController::class);
 
-    Route::get('/api/penawaran', [PenawaranController::class, 'data'])->name('penawaran.data');
+    Route::get('/penawaran/data', [PenawaranController::class, 'data'])->name('penawaran.data');
     Route::get('penawaran/generate/form', [PenawaranController::class, 'generateForm'])->name('penawaran.generate.form');
     Route::post('penawaran/generate', [PenawaranController::class, 'generateFromKurikulum'])->name('penawaran.generate');
     Route::resource('penawaran', PenawaranController::class);
 
-    Route::get('/api/kelas-kuliah', [KelasKuliahController::class, 'data'])->name('kelas-kuliah.data');
+    Route::get('/kelas-kuliah/data', [KelasKuliahController::class, 'data'])->name('kelas-kuliah.data');
     Route::resource('kelas-kuliah', KelasKuliahController::class);
 
-    Route::get('/api/jadwal-kuliah', [JadwalKuliahController::class, 'data'])->name('jadwal-kuliah.data');
+    Route::get('/jadwal-kuliah/data', [JadwalKuliahController::class, 'data'])->name('jadwal-kuliah.data');
     Route::resource('jadwal-kuliah', JadwalKuliahController::class);
 
-    Route::get('/api/pembebanan', [PembebananController::class, 'data'])->name('pembebanan.data');
+    Route::get('/pembebanan/data', [PembebananController::class, 'data'])->name('pembebanan.data');
     Route::resource('pembebanan', PembebananController::class);
 
-    Route::get('/api/pembimbing-mahasiswa', [PembimbingMahasiswaController::class, 'data'])->name('pembimbing-mahasiswa.data');
+    Route::get('/pembimbing-mahasiswa/data', [PembimbingMahasiswaController::class, 'data'])->name('pembimbing-mahasiswa.data');
     Route::resource('pembimbing-mahasiswa', PembimbingMahasiswaController::class);
     Route::get('pembimbing-mahasiswa/import', [PembimbingMahasiswaImportController::class, 'index'])->name('pembimbing-mahasiswa.import.index');
     Route::post('pembimbing-mahasiswa/import', [PembimbingMahasiswaImportController::class, 'store'])->name('pembimbing-mahasiswa.import.store');
@@ -72,7 +72,7 @@ Route::middleware(['auth', 'check.expired', 'module:akademik'])->prefix('akd')->
 
 
     // --- KRS Admin ---
-    Route::get('/api/krs', [KrsController::class, 'data'])->name('krs.data');
+    Route::get('/krs/data', [KrsController::class, 'data'])->name('krs.data');
     Route::resource('krs', KrsController::class)->except(['show'])->parameters(['krs' => 'krs']);
 
     // --- Nilai (Import) ---
@@ -87,7 +87,7 @@ Route::middleware(['auth', 'check.expired', 'module:akademik'])->prefix('akd')->
 
     // --- EDOM Admin ---
     Route::get('/edom', [EdomController::class, 'adminIndex'])->name('edom.index');
-    Route::get('/api/edom', [EdomController::class, 'adminData'])->name('edom.data');
+    Route::get('/edom/data', [EdomController::class, 'adminData'])->name('edom.data');
     Route::post('/edom/{edomKelas}/activate', [EdomController::class, 'activate'])->name('edom.activate');
     Route::post('/edom/{edomKelas}/close', [EdomController::class, 'close'])->name('edom.close');
     Route::get('/edom/{edomKelas}/rekap', [EdomController::class, 'rekap'])->name('edom.rekap');
