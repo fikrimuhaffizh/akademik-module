@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Route;
  * Semua endpoint terautentikasi via `auth:sanctum`.
  * Controllers: Modules/Akademik/app/Http/Controllers/Api/ (JSON-only).
  */
-Route::middleware('auth:sanctum')->prefix('v1/mhs')->name('api.mhs.')->group(function () {
+Route::middleware(['auth:sanctum', 'ability:mhs.read'])->prefix('v1/mhs')->name('api.mhs.')->group(function () {
 
     // --- Mahasiswa (identitas dasar: nama, nim, angkatan, prodi, status) ---
     Route::get('mahasiswa/search', [MahasiswaApiController::class, 'search'])->name('mahasiswa.search');
