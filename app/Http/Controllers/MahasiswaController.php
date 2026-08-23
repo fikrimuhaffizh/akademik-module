@@ -16,7 +16,10 @@ class MahasiswaController extends Controller
 {
     public function __construct(protected MahasiswaService $service, protected StrukturOrganisasiService $strukturService)
     {
-        $this->middleware('permission:akd.mahasiswa.view')->only(['index', 'data']);
+        // export & searchSelect2 ikut di-gate view —
+        // sebelumnya terbuka sehingga seluruh PII mahasiswa bisa diunduh/
+        // di-enumerasi oleh semua user login.
+        $this->middleware('permission:akd.mahasiswa.view')->only(['index', 'data', 'export', 'searchSelect2']);
         $this->middleware('permission:akd.mahasiswa.create')->only(['create', 'store']);
         $this->middleware('permission:akd.mahasiswa.update')->only(['edit', 'update']);
         $this->middleware('permission:akd.mahasiswa.delete')->only(['destroy']);

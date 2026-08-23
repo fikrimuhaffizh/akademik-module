@@ -3,22 +3,7 @@
 @section('title', 'Dashboard Akademik')
 
 @section('content')
-<div class="page-header d-print-none mb-4">
-    <div class="row align-items-center">
-        <div class="col">
-            <h2 class="page-title">Dashboard Akademik</h2>
-            <div class="page-pretitle">Overview</div>
-        </div>
-        @if($stats['periode_aktif'] ?? null)
-        <div class="col-auto">
-            <span class="badge bg-green-lt text-green">
-                <i class="ti ti-calendar-event me-1"></i>
-                {{ $stats['periode_aktif']->nama }} — {{ ucfirst($stats['periode_aktif']->semester) }}
-            </span>
-        </div>
-        @endif
-    </div>
-</div>
+@include('akademik::pages.partials.dashboard-hero')
 
 <div class="row row-deck row-cards">
     {{-- Total Mahasiswa --}}

@@ -25,8 +25,12 @@ class KrsController extends Controller
         protected StrukturOrganisasiService $strukturService,
     ) {
         // Admin permissions
-        $this->middleware('permission:akd.krs.view')->only(['index', 'data', 'monitoring']);
-        $this->middleware('permission:akd.krs.update')->only(['update', 'form', 'toggle', 'ajukan']);
+        // create/store/edit/datatable/pilih/
+        // mahasiswaIndex sebelumnya tanpa gate -> KRS siapa pun bisa
+        // dibuat/dibaca/di-set session-nya.
+        $this->middleware('permission:akd.krs.view')->only(['index', 'data', 'monitoring', 'mahasiswaIndex', 'datatable']);
+        $this->middleware('permission:akd.krs.create')->only(['create', 'store', 'pilih']);
+        $this->middleware('permission:akd.krs.update')->only(['update', 'form', 'toggle', 'ajukan', 'edit']);
         $this->middleware('permission:akd.krs.delete')->only(['destroy']);
     }
 

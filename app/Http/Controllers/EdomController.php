@@ -3,12 +3,13 @@
 namespace Modules\Akademik\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
+use Modules\Akademik\Models\Mahasiswa;
 use Modules\Akademik\Services\EdomService;
 use Modules\Akademik\Services\KelasKuliahService;
-use Modules\Survei\Services\Survei\SurveiService;
-use Illuminate\Http\Request;
-use Yajra\DataTables\DataTables;
 use Modules\Survei\Models\Survei\Survei;
+use Modules\Survei\Services\Survei\SurveiService;
+use Yajra\DataTables\DataTables;
 
 class EdomController extends Controller
 {
@@ -130,9 +131,14 @@ class EdomController extends Controller
 
         $list = null;
         if ($periodeAktif) {
-            // Cari mahasiswa_id dari user — placeholder karena Mahasiswa belum ada
-            // Sementara gunakan user_id sebagai mahasiswa_id
-            $list = $this->edomService->getListForMahasiswa($user->id, $periodeAktif->periode_akademik_id);
+            // resolve relasi user -> mahasiswa yang
+            // benar. Sebelumnya memakai $user->id sebagai mahasiswa_id
+            // (placeholder) sehingga daftar EDOM mahasiswa selalu kosong.
+            $mahasiswa = Mahasiswa::where('user_id', $user->id)->first();
+
+            if ($mahasiswa) {
+                $list = $this->edomService->getListForMahasiswa($mahasiswa->mahasiswa_id, $periodeAktif->periode_akademik_id);
+            }
         }
 
         return view('akademik::pages.edom.mahasiswa', compact('periodeAktif', 'list'));

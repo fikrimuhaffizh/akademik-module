@@ -2,19 +2,20 @@
 
 namespace Modules\Akademik\Services;
 
-use Modules\Akademik\Models\EdomStatus;
-use Modules\Akademik\Models\EdomKelas;
-use Modules\Akademik\Models\KelasKuliah;
-use Modules\Akademik\Models\KalenderAkademik;
-use Modules\Akademik\Models\KrsDetail;
-use Modules\Akademik\Models\Krs;
-use Modules\Akademik\Models\PeriodeAkademik;
-use Modules\Survei\Models\Survei\Survei;
-use Modules\Survei\Models\Survei\Pengisian;
-use Modules\Survei\Models\Survei\Jawaban;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection as SupportCollection;
+use Illuminate\Support\Facades\DB;
+use Modules\Akademik\Models\EdomKelas;
+use Modules\Akademik\Models\EdomStatus;
+use Modules\Akademik\Models\KalenderAkademik;
+use Modules\Akademik\Models\KelasKuliah;
+use Modules\Akademik\Models\Krs;
+use Modules\Akademik\Models\KrsDetail;
+use Modules\Akademik\Models\Mahasiswa;
+use Modules\Akademik\Models\PeriodeAkademik;
+use Modules\Survei\Models\Survei\Jawaban;
+use Modules\Survei\Models\Survei\Pengisian;
+use Modules\Survei\Models\Survei\Survei;
 
 class EdomService
 {
@@ -133,10 +134,17 @@ class EdomService
 
     /**
      * Mulai isi EDOM — update status menjadi sedang_diisi.
+     *
+     * WAJIB cek kepemilikan — $userId harus merupakan
+     * mahasiswa pemilik EdomStatus. Sebelumnya parameter ini diabaikan sehingga
+     * user bisa mengubah status EDOM milik mahasiswa lain (IDOR).
      */
     public function mulaiIsi(int $edomStatusId, int $userId): EdomStatus
     {
         $item = EdomStatus::findOrFail($edomStatusId);
+
+        $mahasiswa = Mahasiswa::where('user_id', $userId)->first();
+        abort_if($mahasiswa === null || (int) $item->mahasiswa_id !== (int) $mahasiswa->mahasiswa_id, 403, 'Anda tidak berhak mengakses EDOM ini.');
 
         if ($item->status === 'selesai') {
             abort(422, 'EDOM untuk matakuliah ini sudah selesai diisi.');
