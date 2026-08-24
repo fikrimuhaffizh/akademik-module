@@ -4,9 +4,9 @@ namespace Modules\Akademik\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use Modules\Akademik\Models\Mahasiswa;
 use Modules\Akademik\Services\EdomService;
 use Modules\Akademik\Services\KelasKuliahService;
+use Modules\Akademik\Services\MahasiswaService;
 use Modules\Survei\Models\Survei\Survei;
 use Modules\Survei\Services\Survei\SurveiService;
 use Yajra\DataTables\DataTables;
@@ -17,6 +17,7 @@ class EdomController extends Controller
         protected EdomService $edomService,
         protected KelasKuliahService $kelasKuliahService,
         protected SurveiService $surveiService,
+        protected MahasiswaService $mahasiswaService,
     )
     {
         $this->middleware('permission:akd.edom.view')->only(['adminIndex', 'adminData', 'rekap']);
@@ -134,7 +135,7 @@ class EdomController extends Controller
             // resolve relasi user -> mahasiswa yang
             // benar. Sebelumnya memakai $user->id sebagai mahasiswa_id
             // (placeholder) sehingga daftar EDOM mahasiswa selalu kosong.
-            $mahasiswa = Mahasiswa::where('user_id', $user->id)->first();
+            $mahasiswa = $this->mahasiswaService->getByUserId($user->id);
 
             if ($mahasiswa) {
                 $list = $this->edomService->getListForMahasiswa($mahasiswa->mahasiswa_id, $periodeAktif->periode_akademik_id);

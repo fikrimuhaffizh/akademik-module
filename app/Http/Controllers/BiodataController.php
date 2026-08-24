@@ -10,7 +10,10 @@ use Yajra\DataTables\Facades\DataTables;
 
 class BiodataController extends Controller
 {
-    public function __construct(protected BiodataService $service)
+    public function __construct(
+        protected BiodataService $service,
+        protected WilayahService $wilayahService,
+    )
     {
         $this->middleware('permission:akd.biodata.view')->only(['index', 'data']);
         $this->middleware('permission:akd.biodata.create')->only(['create', 'store']);
@@ -40,7 +43,7 @@ class BiodataController extends Controller
 
     public function create()
     {
-        $wilayahData = app(WilayahService::class)->getAllForSelect2($row->kecamatan_kode ?? null);
+        $wilayahData = $this->wilayahService->getAllForSelect2($row->kecamatan_kode ?? null);
 
         return view('akademik::pages.biodata.create-edit-ajax', compact('wilayahData'));
     }
@@ -54,7 +57,7 @@ class BiodataController extends Controller
     public function edit(string $id)
     {
         $row         = $this->service->findById($id);
-        $wilayahData = app(WilayahService::class)->getAllForSelect2();
+        $wilayahData = $this->wilayahService->getAllForSelect2();
 
         return view('akademik::pages.biodata.create-edit-ajax', compact('row', 'wilayahData'));
     }

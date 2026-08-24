@@ -150,4 +150,40 @@ class KelasKuliahService
             ->whereIn('kelas_id', $kelasIds)
             ->get();
     }
+
+    /**
+     * Update kelas + replace pembebanan dosen + replace jadwal in 1 transaksi.
+     */
+    public function updateWithRelations(KelasKuliah $kelas, array $data, array $pembebanan, array $jadwals): void
+    {
+        DB::transaction(function () use ($kelas, $data, $pembebanan, $jadwals) {
+            $kelas->update($data);
+
+            // Replace pembebanan
+            $kelas->pembebananDosens()->delete();
+            foreach ($pembebanan as $p) {
+                $kelas->pembebananDosens()->create([
+                    'tenant_id' => $kelas->tenant_id,
+                    'pegawai_id' => $p['pegawai_id'],
+                    'peran' => $p['peran'],
+                ]);
+            }
+
+            // Replace jadwal
+            $kelas->jadwalKuliahs()->delete();
+            foreach ($jadwals as $j) {
+                $kelas->jadwalKuliahs()->create(array_merge($j, [
+                    'tenant_id' => $kelas->tenant_id,
+                ]));
+            }
+        });
+    }
+
+    /**
+     * Hapus kelas kuliah.
+     */
+    public function delete(KelasKuliah $kelas): bool
+    {
+        return $kelas->delete();
+    }
 }

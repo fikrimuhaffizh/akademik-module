@@ -10,7 +10,6 @@ use Yajra\DataTables\Facades\DataTables;
 use Modules\Akademik\Exports\MahasiswaExport;
 use Maatwebsite\Excel\Facades\Excel;
 use Modules\HrCore\Services\StrukturOrganisasiService;
-use Modules\Akademik\Models\Mahasiswa;
 
 class MahasiswaController extends Controller
 {
@@ -27,7 +26,7 @@ class MahasiswaController extends Controller
 
     public function index()
     {
-        $angkatans = Mahasiswa::distinct()->pluck('angkatan')->sort()->values();
+        $angkatans = $this->service->getAngkatans();
         $prodis = $this->strukturService->getAllProdi();
 
         return view('akademik::pages.mahasiswa.index', compact('angkatans', 'prodis'));
@@ -77,22 +76,7 @@ class MahasiswaController extends Controller
     public function searchSelect2(Request $request)
     {
         $term = trim((string) $request->input('search', ''));
-        $query = Mahasiswa::query()->limit(20);
-
-        if ($term !== '') {
-            $query->where(function ($q) use ($term) {
-                $q->where('nama', 'like', "%{$term}%")
-                  ->orWhere('nim', 'like', "%{$term}%");
-            });
-        }
-
-        $rows = $query->get(['mahasiswa_id', 'nim', 'nama', 'angkatan'])
-            ->map(function ($m) {
-                return [
-                    'id'   => encryptId($m->mahasiswa_id),
-                    'text' => $m->nama . ' (' . ($m->nim ?? '-') . ') • Angkatan ' . ($m->angkatan ?? '-'),
-                ];
-            });
+        $rows = $this->service->searchSelect2($term);
 
         return response()->json(['results' => $rows]);
     }

@@ -5,8 +5,7 @@ namespace Modules\Akademik\Http\Controllers;
 use App\Http\Controllers\Controller;
 use Modules\Akademik\Services\NilaiService;
 use Modules\Akademik\Services\NilaiImportService;
-use Modules\Akademik\Models\Nilai;
-use Modules\Akademik\Models\PembebananDosen;
+use Modules\Akademik\Services\MahasiswaService;
 use Illuminate\Http\Request;
 use Modules\Akademik\Http\Requests\NilaiStoreRequest;
 use Modules\Akademik\Http\Requests\NilaiUpdateRequest;
@@ -18,6 +17,7 @@ class NilaiController extends Controller
     public function __construct(
         protected NilaiService $nilaiService,
         protected NilaiImportService $importService,
+        protected MahasiswaService $mahasiswaService,
     ) {
         $this->middleware('permission:akd.nilai.view')->only(['index', 'data', 'khs', 'transkrip']);
         $this->middleware('permission:akd.nilai.create')->only(['store', 'import']);
@@ -38,7 +38,7 @@ class NilaiController extends Controller
     public function index(Request $request)
     {
         $isAdmin = $request->get('role') === 'admin'
-            || auth()->user()?->hasAnyRole(['Superadmin', 'Admin', 'PA']);
+            || hasRole(['Superadmin', 'Admin', 'PA']);
 
         if ($isAdmin) {
             $kelasOptions = $this->importService->getKelasOptions();
@@ -81,7 +81,7 @@ class NilaiController extends Controller
 
     public function update(NilaiUpdateRequest $request, string $id)
     {
-        $nilai = Nilai::findOrFail(decryptIdIfEncrypted($id));
+        $nilai = $this->nilaiService->findById($id);
         $this->authorizeDosenKelas($nilai->kelas_id);
         $this->importService->updateNilai($nilai->nilai_akhir_id, $request->validated());
 
@@ -102,16 +102,14 @@ class NilaiController extends Controller
             return;
         }
 
-        $assigned = PembebananDosen::where('kelas_id', $kelasId)
-            ->where('pegawai_id', $pegawai->pegawai_id)
-            ->exists();
+        $assigned = $this->nilaiService->isDosenAssignedToKelas($kelasId, $pegawai->pegawai_id);
 
         abort_unless($assigned, 403, 'Anda tidak ditugaskan mengampu kelas ini.');
     }
 
     public function destroy(string $id)
     {
-        $nilai = Nilai::findOrFail(decryptIdIfEncrypted($id));
+        $nilai = $this->nilaiService->findById($id);
         $this->importService->deleteNilai($nilai->nilai_akhir_id);
 
         return jsonSuccess('Nilai berhasil dihapus.');
@@ -186,8 +184,8 @@ class NilaiController extends Controller
     protected function resolveMahasiswaId(): ?int
     {
         $user = auth()->user();
-        if ($user && $user->hasRole('Mahasiswa')) {
-            $mhs = \Modules\Akademik\Models\Mahasiswa::where('user_id', $user->id)->first();
+        if ($user && hasRole('Mahasiswa')) {
+            $mhs = $this->mahasiswaService->getByUserId($user->id);
             return $mhs?->mahasiswa_id;
         }
         return null;

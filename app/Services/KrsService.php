@@ -103,6 +103,60 @@ class KrsService
         });
     }
 
+    /**
+     * DataTables source for the admin KRS list (all KRS).
+     */
+    public function getAdminQuery(): Builder
+    {
+        return Krs::with(['mahasiswa.prodi', 'periodeAkademik'])
+            ->select('akd_krs.*');
+    }
+
+    /**
+     * Find latest KRS for a mahasiswa in a given periode.
+     */
+    public function findByMahasiswaPeriode(int $mahasiswaId, int $periodeAkademikId): ?Krs
+    {
+        return Krs::where('mahasiswa_id', $mahasiswaId)
+            ->where('periode_akademik_id', $periodeAkademikId)
+            ->orderByDesc('created_at')
+            ->first();
+    }
+
+    /**
+     * Riwayat KRS (periode + status) untuk tampilan mahasiswa.
+     */
+    public function getRiwayatByMahasiswa(Mahasiswa $mahasiswa): array
+    {
+        return Krs::with('periodeAkademik')
+            ->where('mahasiswa_id', $mahasiswa->mahasiswa_id)
+            ->orderByDesc('created_at')
+            ->get()
+            ->map(fn(Krs $krs) => [
+                'krs_id'    => $krs->encrypted_krs_id,
+                'periode'   => $krs->periodeAkademik?->nama ?? '-',
+                'status'    => $krs->status,
+                'total_sks' => $krs->total_sks,
+                'is_aktif'  => $krs->periodeAkademik?->is_aktif ?? false,
+            ])->all();
+    }
+
+    /**
+     * Kelas kuliah (aktif, disetujui) yang diambil mahasiswa di periode EDOM.
+     */
+    public function getKelasIdsByMahasiswaPeriode(int $mahasiswaId, int $periodeAkademikId): array
+    {
+        return KrsDetail::query()
+            ->where('status', 'aktif')
+            ->whereHas('krs', fn ($q) => $q->where('mahasiswa_id', $mahasiswaId)
+                ->where('periode_akademik_id', $periodeAkademikId)
+                ->where('status', 'disetujui'))
+            ->pluck('kelas_id')
+            ->unique()
+            ->values()
+            ->all();
+    }
+
     protected function validateKrs(int $mahasiswaId, int $periodeAkademikId, array $kelasIds, ?int $ignoreKrsId = null): void
     {
         $mahasiswa = Mahasiswa::findOrFail($mahasiswaId);

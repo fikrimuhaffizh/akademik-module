@@ -5,11 +5,11 @@ namespace Modules\Akademik\Http\Controllers;
 use App\Http\Controllers\Controller;
 use Modules\Akademik\Http\Requests\PeriodeAkademikRequest;
 use Modules\Akademik\Services\PeriodeAkademikService;
+use Modules\Akademik\Services\GeneratePenawaranService;
+use Modules\Kurikulum\Services\SettingProdiService;
 use Illuminate\Http\Request;
 use Yajra\DataTables\DataTables;
 use Modules\Akademik\Models\PeriodeAkademik;
-use Modules\Akademik\Services\GeneratePenawaranService;
-use Modules\Kurikulum\Models\SettingProdi;
 use Illuminate\Support\Facades\Log;
 
 class PeriodeAkademikController extends Controller
@@ -17,6 +17,7 @@ class PeriodeAkademikController extends Controller
     public function __construct(
         protected PeriodeAkademikService $service,
         protected GeneratePenawaranService $penawaranService,
+        protected SettingProdiService $settingProdiService,
     ) {
         $this->middleware('permission:akd.periode-akademik.view')->only(['index', 'data']);
         $this->middleware('permission:akd.periode-akademik.create')->only(['create', 'store']);
@@ -59,9 +60,7 @@ class PeriodeAkademikController extends Controller
      */
     protected function autoGeneratePenawaran(PeriodeAkademik $periode): void
     {
-        $settingProdis = SettingProdi::where('is_aktif', true)
-            ->whereNotNull('kurikulum_id')
-            ->get();
+        $settingProdis = $this->settingProdiService->getAktifWithKurikulum();
 
         foreach ($settingProdis as $setting) {
             try {

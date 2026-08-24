@@ -4,9 +4,9 @@ namespace Modules\Akademik\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Modules\Akademik\Models\Mahasiswa;
-use Modules\Akademik\Models\Krs;
 use Modules\Akademik\Models\PeriodeAkademik;
 use Modules\Akademik\Services\KrsService;
+use Modules\Akademik\Services\MahasiswaService;
 use Modules\Akademik\Services\PeriodeAkademikService;
 use Modules\Akademik\Services\KalenderAkademikService;
 use Modules\HrCore\Services\StrukturOrganisasiService;
@@ -23,6 +23,7 @@ class KrsController extends Controller
         protected PeriodeAkademikService $periodeService,
         protected KalenderAkademikService $kalenderService,
         protected StrukturOrganisasiService $strukturService,
+        protected MahasiswaService $mahasiswaService,
     ) {
         // Admin permissions
         // create/store/edit/datatable/pilih/
@@ -51,8 +52,7 @@ class KrsController extends Controller
      */
     public function data(Request $request)
     {
-        $query = Krs::with(['mahasiswa.prodi', 'periodeAkademik'])
-            ->select('akd_krs.*');
+        $query = $this->krsService->getAdminQuery();
 
         return Datatables::of($query)
             ->editColumn('mahasiswa_id', fn($row) => $row->mahasiswa?->nama ?? '-')
@@ -79,7 +79,7 @@ class KrsController extends Controller
      */
     public function create()
     {
-        $periodeList = PeriodeAkademik::orderByDesc('is_aktif')->orderByDesc('created_at')->get();
+        $periodeList = $this->periodeService->getList();
         return view('akademik::pages.krs.create-edit-ajax', [
             'krs' => null,
             'periodeList' => $periodeList,
@@ -99,8 +99,8 @@ class KrsController extends Controller
 
     public function edit(string $id)
     {
-        $krs = Krs::findOrFail(decryptIdIfEncrypted($id));
-        $periodeList = PeriodeAkademik::orderByDesc('is_aktif')->orderByDesc('created_at')->get();
+        $krs = $this->krsService->findById($id);
+        $periodeList = $this->periodeService->getList();
 
         return view('akademik::pages.krs.create-edit-ajax', [
             'krs' => $krs,
@@ -110,7 +110,7 @@ class KrsController extends Controller
 
     public function update(KrsUpdateRequest $request, string $id)
     {
-        $krs = Krs::findOrFail(decryptIdIfEncrypted($id));
+        $krs = $this->krsService->findById($id);
         $this->krsService->update($krs->krs_id, $request->validated());
 
         return jsonSuccess('KRS berhasil diupdate.');
@@ -118,8 +118,7 @@ class KrsController extends Controller
 
     public function destroy(string $id)
     {
-        $krs = Krs::findOrFail(decryptIdIfEncrypted($id));
-        $this->krsService->delete($krs->krs_id);
+        $this->krsService->delete(decryptIdIfEncrypted($id));
 
         return jsonSuccess('KRS berhasil dihapus.');
     }
@@ -143,11 +142,11 @@ class KrsController extends Controller
     {
         $user = auth()->user();
         if ($user && $user->hasRole('Mahasiswa')) {
-            return Mahasiswa::where('user_id', $user->id)->first();
+            return $this->mahasiswaService->getByUserId($user->id);
         }
         $sessionId = Session::get('krs_mahasiswa_id');
         if ($sessionId) {
-            return Mahasiswa::find($sessionId);
+            return $this->mahasiswaService->findByIdRaw($sessionId);
         }
         return null;
     }
@@ -167,17 +166,7 @@ class KrsController extends Controller
 
     protected function getRiwayatKrs(Mahasiswa $mahasiswa): array
     {
-        return Krs::with('periodeAkademik')
-            ->where('mahasiswa_id', $mahasiswa->mahasiswa_id)
-            ->orderByDesc('created_at')
-            ->get()
-            ->map(fn(Krs $krs) => [
-                'krs_id'    => $krs->encrypted_krs_id,
-                'periode'   => $krs->periodeAkademik?->nama ?? '-',
-                'status'    => $krs->status,
-                'total_sks' => $krs->total_sks,
-                'is_aktif'  => $krs->periodeAkademik?->is_aktif ?? false,
-            ])->all();
+        return $this->krsService->getRiwayatByMahasiswa($mahasiswa);
     }
 
     /**
@@ -187,7 +176,7 @@ class KrsController extends Controller
     {
         $periode = $this->periodeService->getAktif();
         $mahasiswa = $this->resolveMahasiswa();
-        $isSuperadmin = auth()->user()?->hasRole('Superadmin');
+        $isSuperadmin = hasRole('Superadmin');
 
         if ($request->has('clear')) {
             Session::forget('krs_mahasiswa_id');
@@ -215,22 +204,20 @@ class KrsController extends Controller
 
     public function form(string $mahasiswaId)
     {
-        $mahasiswa = Mahasiswa::findOrFail(decryptIdIfEncrypted($mahasiswaId));
+        $mahasiswa = $this->mahasiswaService->findById($mahasiswaId);
         $periode = $this->periodeService->getAktif();
 
         if (! $periode) abort(404, 'Tidak ada periode akademik aktif.');
 
         $prodiNama = $this->strukturService->getOrgUnitById($mahasiswa->prodi_id)?->name ?? '-';
-        $krs = Krs::where('mahasiswa_id', $mahasiswa->mahasiswa_id)
-            ->where('periode_akademik_id', $periode->periode_akademik_id)
-            ->orderByDesc('created_at')->first();
+        $krs = $this->krsService->findByMahasiswaPeriode($mahasiswa->mahasiswa_id, $periode->periode_akademik_id);
 
         return view('akademik::pages.krs.form', compact('mahasiswa', 'prodiNama', 'periode', 'krs'));
     }
 
     public function datatable(Request $request)
     {
-        $mahasiswa = Mahasiswa::findOrFail(decryptIdIfEncrypted($request->mahasiswa_id));
+        $mahasiswa = $this->mahasiswaService->findById($request->mahasiswa_id);
         $periode = $this->periodeService->getAktif();
 
         if (! $periode) return response()->json(['data' => []]);

@@ -3,8 +3,7 @@
 namespace Modules\Akademik\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use Modules\Akademik\Models\Mahasiswa;
-use Modules\HrCore\Models\StrukturOrganisasi;
+use Modules\Akademik\Services\MahasiswaService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -20,6 +19,8 @@ use Illuminate\Http\Request;
  */
 class MahasiswaApiController extends Controller
 {
+    public function __construct(protected MahasiswaService $mahasiswaService) {}
+
     /**
      * GET /api/v1/mhs/mahasiswa/search?q=...
      *
@@ -30,18 +31,7 @@ class MahasiswaApiController extends Controller
     {
         $q = $request->input('q', $request->input('search', ''));
 
-        $query = Mahasiswa::query()
-            ->select(['mahasiswa_id', 'nim', 'nama'])
-            ->where('status', 'aktif');
-
-        if (!empty($q)) {
-            $query->where(function ($qBuilder) use ($q) {
-                $qBuilder->where('nama', 'like', "%{$q}%")
-                    ->orWhere('nim', 'like', "%{$q}%");
-            });
-        }
-
-        $results = $query->orderBy('nim')->take(20)->get()->map(function ($item) {
+        $results = $this->mahasiswaService->getApiSearch($q)->map(function ($item) {
             return [
                 'id' => encryptId($item->mahasiswa_id),
                 'text' => $item->nama . ($item->nim ? ' (' . $item->nim . ')' : ''),
@@ -60,38 +50,7 @@ class MahasiswaApiController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = Mahasiswa::query()
-            ->with('prodi:id,orgunit_id,name')
-            ->select([
-                'mahasiswa_id',
-                'nim',
-                'nama',
-                'angkatan',
-                'prodi_id',
-                'status',
-            ]);
-
-        if ($request->filled('search')) {
-            $search = $request->input('search');
-            $query->where(function ($q) use ($search) {
-                $q->where('nama', 'like', "%{$search}%")
-                    ->orWhere('nim', 'like', "%{$search}%");
-            });
-        }
-
-        if ($request->filled('angkatan')) {
-            $query->where('angkatan', $request->input('angkatan'));
-        }
-
-        if ($request->filled('status')) {
-            $query->where('status', $request->input('status'));
-        }
-
-        if ($request->filled('prodi_id')) {
-            $query->where('prodi_id', $request->input('prodi_id'));
-        }
-
-        $query->orderBy('nim');
+        $query = $this->mahasiswaService->getApiIndexQuery($request->all());
 
         $perPage = min((int) $request->input('per_page', 25), 100);
         $paginator = $query->paginate($perPage);
@@ -117,8 +76,7 @@ class MahasiswaApiController extends Controller
      */
     public function show(string $id): JsonResponse
     {
-        $item = Mahasiswa::with('prodi:id,orgunit_id,name')
-            ->findOrFail(decryptIdIfEncrypted($id));
+        $item = $this->mahasiswaService->findApi(decryptIdIfEncrypted($id));
 
         return response()->json([
             'success' => true,

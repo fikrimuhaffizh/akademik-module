@@ -3,20 +3,26 @@
 namespace Modules\Akademik\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use Modules\Akademik\Models\Mahasiswa;
 use Modules\Akademik\Models\EdomStatus;
 use Modules\Akademik\Services\EdomService;
 use Modules\Akademik\Services\KelasKuliahService;
+use Modules\Akademik\Services\KrsService;
+use Modules\Akademik\Services\MahasiswaService;
 use Modules\Survei\Models\Survei\Survei;
 
 class EdomMahasiswaController extends Controller
 {
-    public function __construct(protected EdomService $edomService, protected KelasKuliahService $kelasKuliahService) {}
+    public function __construct(
+        protected EdomService $edomService,
+        protected KelasKuliahService $kelasKuliahService,
+        protected KrsService $krsService,
+        protected MahasiswaService $mahasiswaService,
+    ) {}
 
     public function index()
     {
         $user = auth()->user();
-        $mahasiswa = Mahasiswa::where('user_id', $user->id)->first();
+        $mahasiswa = $this->mahasiswaService->getByUserId($user->id);
 
         if (! $mahasiswa) {
             return view('akademik::pages.edom.index', [
@@ -44,14 +50,7 @@ class EdomMahasiswaController extends Controller
         $survei = $this->edomService->getEdomSurvei();
 
         // Kelas kuliah yang diambil mahasiswa di periode EDOM (via KRS detail → krs).
-        $kelasIds = \Modules\Akademik\Models\KrsDetail::query()
-            ->where('status', 'aktif')
-            ->whereHas('krs', fn ($q) => $q->where('mahasiswa_id', $mahasiswa->mahasiswa_id)
-                ->where('periode_akademik_id', $periodeId)
-                ->where('status', 'disetujui'))
-            ->pluck('kelas_id')
-            ->unique()
-            ->values();
+        $kelasIds = $this->krsService->getKelasIdsByMahasiswaPeriode($mahasiswa->mahasiswa_id, $periodeId);
 
         $kelasList = $this->kelasKuliahService->getByIds($kelasIds->all());
 

@@ -25,6 +25,14 @@ class PeriodeAkademikService
     }
 
     public function getAll(): Collection { return PeriodeAkademik::orderByDesc('tgl_mulai')->get(); }
+
+    /**
+     * List periode untuk dropdown (aktif diurutkan duluan).
+     */
+    public function getList(): Collection
+    {
+        return PeriodeAkademik::orderByDesc('is_aktif')->orderByDesc('created_at')->get();
+    }
     public function getAktif(): ?PeriodeAkademik { return PeriodeAkademik::where('is_aktif', true)->first(); }
     public function findById(string|int $id): PeriodeAkademik { return PeriodeAkademik::findOrFail(decryptIdIfEncrypted($id)); }
 

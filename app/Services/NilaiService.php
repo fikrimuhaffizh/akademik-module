@@ -3,6 +3,7 @@
 namespace Modules\Akademik\Services;
 
 use Modules\Akademik\Models\Nilai;
+use Modules\Akademik\Models\PembebananDosen;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Collection;
@@ -133,6 +134,16 @@ class NilaiService
         return Nilai::where('mahasiswa_id', $mahasiswaId)
             ->where('mata_kuliah_id', $prasyaratMkId)
             ->where('is_lulus', true)
+            ->exists();
+    }
+
+    /**
+     * Cek apakah seorang dosen (pegawai) ditugaskan mengampu kelas tertentu.
+     */
+    public function isDosenAssignedToKelas(int $kelasId, int $pegawaiId): bool
+    {
+        return PembebananDosen::where('kelas_id', $kelasId)
+            ->where('pegawai_id', $pegawaiId)
             ->exists();
     }
 }

@@ -101,34 +101,14 @@ class KelasKuliahController extends Controller
 
         $this->assertNoScheduleConflict($kelas_kuliah->kelas_id, $pembebanan, $jadwals);
 
-        DB::transaction(function () use ($kelas_kuliah, $data, $pembebanan, $jadwals) {
-            $kelas_kuliah->update($data);
-
-            // Replace pembebanan
-            $kelas_kuliah->pembebananDosens()->delete();
-            foreach ($pembebanan as $p) {
-                $kelas_kuliah->pembebananDosens()->create([
-                    'tenant_id' => $kelas_kuliah->tenant_id,
-                    'pegawai_id' => $p['pegawai_id'],
-                    'peran' => $p['peran'],
-                ]);
-            }
-
-            // Replace jadwal
-            $kelas_kuliah->jadwalKuliahs()->delete();
-            foreach ($jadwals as $j) {
-                $kelas_kuliah->jadwalKuliahs()->create(array_merge($j, [
-                    'tenant_id' => $kelas_kuliah->tenant_id,
-                ]));
-            }
-        });
+        $this->kelasKuliahService->updateWithRelations($kelas_kuliah, $data, $pembebanan, $jadwals);
 
         return jsonSuccess('Kelas kuliah berhasil diperbarui.', null, ['reload' => true]);
     }
 
     public function destroy(KelasKuliah $kelas_kuliah)
     {
-        $kelas_kuliah->delete();
+        $this->kelasKuliahService->delete($kelas_kuliah);
 
         return jsonSuccess('Kelas kuliah berhasil dihapus.', null, ['reload' => true]);
     }

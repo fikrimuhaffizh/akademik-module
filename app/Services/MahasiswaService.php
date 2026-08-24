@@ -3,17 +3,26 @@
 namespace Modules\Akademik\Services;
 
 use Modules\Akademik\Models\Mahasiswa;
+use Modules\Akademik\Models\Krs;
+use Modules\Akademik\Models\Nilai;
+use Modules\Akademik\Models\PeriodeAkademik;
 use Modules\Kurikulum\Services\KurikulumService;
+use Modules\Kurikulum\Models\SettingProdi;
+use Modules\Kurikulum\Models\KurikulumMataKuliah;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Modules\Akademik\Models\Biodata;
 use Modules\Akademik\Models\Cekal;
 use Modules\Akademik\Models\Cuti;
+use Modules\Akademik\Services\NilaiService;
 
 class MahasiswaService
 {
-    public function __construct(protected KurikulumService $kurikulumService) {}
+    public function __construct(
+        protected KurikulumService $kurikulumService,
+        protected NilaiService $nilaiService,
+    ) {}
 
     public function getBaseQuery(): Builder
     {
@@ -207,6 +216,171 @@ class MahasiswaService
 
             return $mahasiswa->mahasiswa_id;
         });
+    }
+
+    /**
+     * Resolve mahasiswa by authenticated user id.
+     */
+    public function getByUserId(int $userId): ?Mahasiswa
+    {
+        return Mahasiswa::where('user_id', $userId)->first();
+    }
+
+    /**
+     * Find raw mahasiswa by (already decrypted) id without relation load.
+     */
+    public function findByIdRaw(int|string $id): ?Mahasiswa
+    {
+        return Mahasiswa::find(is_int($id) ? $id : decryptIdIfEncrypted($id));
+    }
+
+    /**
+     * Distinct angkatan list (sorted) for filter dropdowns.
+     */
+    public function getAngkatans(): Collection
+    {
+        return Mahasiswa::distinct()->pluck('angkatan')->sort()->values();
+    }
+
+    /**
+     * Lightweight select2 search by NIM / nama.
+     */
+    public function searchSelect2(string $term): Collection
+    {
+        $query = Mahasiswa::query()->limit(20);
+
+        if ($term !== '') {
+            $query->where(function ($q) use ($term) {
+                $q->where('nama', 'like', "%{$term}%")
+                  ->orWhere('nim', 'like', "%{$term}%");
+            });
+        }
+
+        return $query->get(['mahasiswa_id', 'nim', 'nama', 'angkatan'])
+            ->map(function ($m) {
+                return [
+                    'id'   => encryptId($m->mahasiswa_id),
+                    'text' => $m->nama . ' (' . ($m->nim ?? '-') . ') • Angkatan ' . ($m->angkatan ?? '-'),
+                ];
+            });
+    }
+
+    /**
+     * Lightweight API search (aktif only) returning raw mahasiswa rows.
+     */
+    public function getApiSearch(string $q): Collection
+    {
+        $query = Mahasiswa::query()
+            ->select(['mahasiswa_id', 'nim', 'nama'])
+            ->where('status', 'aktif');
+
+        if (! empty($q)) {
+            $query->where(function ($qb) use ($q) {
+                $qb->where('nama', 'like', "%{$q}%")
+                  ->orWhere('nim', 'like', "%{$q}%");
+            });
+        }
+
+        return $query->orderBy('nim')->take(20)->get();
+    }
+
+    /**
+     * Query builder for the REST API index (mahasiswa list).
+     */
+    public function getApiIndexQuery(array $filters): Builder
+    {
+        $query = Mahasiswa::query()
+            ->with('prodi:id,orgunit_id,name')
+            ->select(['mahasiswa_id', 'nim', 'nama', 'angkatan', 'prodi_id', 'status']);
+
+        if (! empty($filters['search'])) {
+            $search = $filters['search'];
+            $query->where(function ($q) use ($search) {
+                $q->where('nama', 'like', "%{$search}%")
+                  ->orWhere('nim', 'like', "%{$search}%");
+            });
+        }
+
+        if (! empty($filters['angkatan'])) {
+            $query->where('angkatan', $filters['angkatan']);
+        }
+
+        if (! empty($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+
+        if (! empty($filters['prodi_id'])) {
+            $query->where('prodi_id', $filters['prodi_id']);
+        }
+
+        return $query->orderBy('nim');
+    }
+
+    /**
+     * Find mahasiswa with prodi relation for the REST API show endpoint.
+     */
+    public function findApi(int $id): ?Mahasiswa
+    {
+        return Mahasiswa::with('prodi:id,orgunit_id,name')->findOrFail($id);
+    }
+
+    /**
+     * Aggregated data for the mahasiswa-facing dashboard.
+     */
+    public function getDashboardData(Mahasiswa $mahasiswa, ?PeriodeAkademik $periode): array
+    {
+        $periodeId = $periode?->periode_akademik_id;
+
+        $krsAktif = $periode
+            ? Krs::where('mahasiswa_id', $mahasiswa->mahasiswa_id)
+                ->where('periode_akademik_id', $periodeId)
+                ->first()
+            : null;
+
+        $sksDiambil = $krsAktif
+            ? $krsAktif->details()->where('status', 'aktif')->count()
+            : 0;
+
+        $ipk = $this->nilaiService->hitungIpk($mahasiswa->mahasiswa_id);
+        $ips = $periode
+            ? $this->nilaiService->hitungIps($mahasiswa->mahasiswa_id, $periodeId)
+            : 0;
+
+        $sksLulus = Nilai::where('mahasiswa_id', $mahasiswa->mahasiswa_id)
+            ->where('is_lulus', true)
+            ->sum('sks');
+
+        $cekalAktif = Cekal::where('mahasiswa_id', $mahasiswa->mahasiswa_id)
+            ->where('is_aktif', true)
+            ->first();
+
+        $nilaiTerakhir = Nilai::with('mataKuliah')
+            ->where('mahasiswa_id', $mahasiswa->mahasiswa_id)
+            ->orderByDesc('created_at')
+            ->limit(5)
+            ->get();
+
+        $cutiAktif = Cuti::where('mahasiswa_id', $mahasiswa->mahasiswa_id)
+            ->where('status', 'pending')
+            ->exists();
+
+        $totalSksKurikulum = 0;
+        $settingProdi = SettingProdi::where('prodi_id', $mahasiswa->prodi_id)
+            ->where('is_aktif', true)
+            ->first();
+        if ($settingProdi && $settingProdi->kurikulum_id) {
+            $totalSksKurikulum = KurikulumMataKuliah::where('kurikulum_id', $settingProdi->kurikulum_id)
+                ->sum('sks');
+        }
+        $persentaseKelulusan = $totalSksKurikulum > 0
+            ? round(($sksLulus / $totalSksKurikulum) * 100, 1)
+            : 0;
+
+        return compact(
+            'krsAktif', 'sksDiambil', 'ipk', 'ips', 'sksLulus',
+            'totalSksKurikulum', 'persentaseKelulusan', 'cekalAktif',
+            'nilaiTerakhir', 'cutiAktif'
+        );
     }
 
     /**
