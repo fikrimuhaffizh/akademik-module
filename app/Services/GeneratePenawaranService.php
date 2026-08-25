@@ -2,6 +2,8 @@
 
 namespace Modules\Akademik\Services;
 
+use Modules\Kurikulum\Models\Kurikulum;
+
 use Modules\Kurikulum\Services\KurikulumService;
 use Modules\Akademik\Models\PenawaranMataKuliah;
 use Modules\Akademik\Models\PeriodeAkademik;
@@ -69,7 +71,7 @@ class GeneratePenawaranService
                     'tenant_id' => $tenant,
                     'periode_akademik_id' => $periodeId,
                     'kurikulum_mata_kuliah_id' => $kurMk->kur_mk_id,
-                    'kurikulum_kode' => \Modules\Kurikulum\Models\Kurikulum::find($kurMk->kurikulum_id)?->kode_kurikulum,
+                    'kurikulum_kode' => Kurikulum::find($kurMk->kurikulum_id)?->kode_kurikulum,
                     'prodi_id' => $prodiId,
                     'is_aktif' => true,
                     'is_wajib' => $kurMk->is_wajib,

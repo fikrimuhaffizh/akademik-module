@@ -1,6 +1,9 @@
 <?php
 namespace Modules\Akademik\Services;
 
+use Modules\Kurikulum\Models\KurikulumMataKuliah;
+use Modules\HrMax\Models\StrukturOrganisasi;
+
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Collection as SupportCollection;
@@ -255,7 +258,7 @@ class KrsService
             ->values();
 
         // Map selected kur_mk_id -> mata_kuliah_id (prasyarat pakai mata_kuliah_id)
-        $kurMkToMk = \Modules\Kurikulum\Models\KurikulumMataKuliah::whereIn('kur_mk_id', $selectedMkIds)
+        $kurMkToMk = KurikulumMataKuliah::whereIn('kur_mk_id', $selectedMkIds)
             ->pluck('mata_kuliah_id', 'kur_mk_id');
         $selectedMataKuliahIds = $kurMkToMk->values()->unique()->values();
 
@@ -567,7 +570,7 @@ class KrsService
         );
 
         $prodiIds  = $grouped->keys()->map(fn($k) => (int) explode('|', $k)[1])->unique()->values();
-        $prodiNama = \Modules\HrCore\Models\StrukturOrganisasi::whereIn('orgunit_id', $prodiIds)
+        $prodiNama = StrukturOrganisasi::whereIn('orgunit_id', $prodiIds)
             ->pluck('name', 'orgunit_id');
 
         $result = collect();
