@@ -7,7 +7,6 @@ use Modules\Akademik\Models\PembebananDosen;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Collection;
-use Modules\Akademik\Models\MataKuliah;
 use Modules\Akademik\Services\RekognisiService;
 
 class NilaiService

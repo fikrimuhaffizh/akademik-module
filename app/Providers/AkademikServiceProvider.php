@@ -12,13 +12,13 @@ class AkademikServiceProvider extends BaseModuleServiceProvider
     protected function menu(): array
     {
         return [
-            ['title' => 'Dashboard', 'route' => 'akd.dashboard', 'icon' => 'home', 'permission' => null],
+            ['title' => 'Dashboard', 'route' => 'akd.dashboard', 'icon' => 'home', 'permission' => 'akd.dashboard.view'],
 
             [
                 'title'     => 'Pengaturan',
                 'type'      => 'dropdown',
                 'icon'      => 'settings',
-                'permission' => null,
+                'permission' => 'akd.dashboard.view',
                 'children'  => [
                     ['title' => 'Periode Akademik',  'route' => 'akd.periode-akademik.index',     'active_routes' => ['akd.periode-akademik.*'],     'icon' => 'calendar-event', 'permission' => 'akd.periode-akademik.view'],
                     ['title' => 'Kalender Akademik', 'route' => 'akd.kalender-akademik.index',    'active_routes' => ['akd.kalender-akademik.*'],    'icon' => 'calendar',       'permission' => 'akd.kalender-akademik.view'],
@@ -63,7 +63,7 @@ class AkademikServiceProvider extends BaseModuleServiceProvider
                     ['title' => 'KRS Mahasiswa',     'route' => 'akd.krs-mahasiswa.index',       'active_routes' => ['akd.krs-mahasiswa.*', 'akd.krs.*'], 'icon' => 'clipboard-list', 'permission' => 'akd.krs.view'],
                     ['title' => 'Nilai',             'route' => 'akd.nilai.index',               'active_routes' => ['akd.nilai.*'],              'icon' => 'chart-bar',     'permission' => 'akd.nilai.view'],
                     ['title' => 'Pembimbing',        'route' => 'akd.pembimbing-mahasiswa.index','active_routes' => ['akd.pembimbing-mahasiswa.*'],'icon' => 'user-star',      'permission' => 'akd.pembimbing-mahasiswa.view'],
-                    ['title' => 'EDOM',              'route' => 'akd.edom.index',                'active_routes' => ['akd.edom.*'],               'icon' => 'message-star',  'permission' => null],
+                    ['title' => 'EDOM',              'route' => 'akd.edom.index',                'active_routes' => ['akd.edom.*'],               'icon' => 'message-star',  'permission' => 'akd.edom.view'],
                 ],
             ],
         ];
