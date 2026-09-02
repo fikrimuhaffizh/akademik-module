@@ -1,7 +1,7 @@
 @extends('akademik::layouts.akademik-layout')
 
 @section('header')
-    <x-ui.page-header title="Data Nilai" pretitle="Mahasiswa">
+    <x-ui.page-header title="Data Nilai" pretitle="Akademik">
         <x-slot:actions>
             @can('akd.nilai.create')
                 <x-ui.button type="create" class="ajax-modal-btn" data-url="{{ route('akd.nilai.create') }}" data-modal-title="Form Nilai" />

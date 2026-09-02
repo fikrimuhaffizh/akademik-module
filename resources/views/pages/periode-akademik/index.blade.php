@@ -1,7 +1,7 @@
 @extends('akademik::layouts.akademik-layout')
 
 @section('header')
-    <x-ui.page-header title="Periode Akademik" pretitle="Perkuliahan">
+    <x-ui.page-header title="Periode Akademik" pretitle="Pengaturan">
         <x-slot:actions>
             <x-ui.button type="create" class="ajax-modal-btn" data-url="{{ route('akd.periode-akademik.create') }}" data-modal-title="Tambah Periode Akademik" />
         </x-slot:actions>

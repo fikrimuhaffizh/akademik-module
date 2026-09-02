@@ -3,7 +3,7 @@
 @section('title', 'Pengisian EDOM')
 
 @section('header')
-    <x-ui.page-header title="Pengisian EDOM" pretitle="Evaluasi Dosen Mengajar">
+    <x-ui.page-header title="Pengisian EDOM" pretitle="Akademik">
         <x-slot:actions>
             @if(isset($survei) && $survei && isset($kelasList) && $kelasList->isNotEmpty())
                 <a href="{{ route('srv.public.welcome', ['slug' => $survei->slug]) }}" class="btn btn-outline-secondary" target="_blank">

@@ -3,7 +3,7 @@
 @section('title', 'KRS Mahasiswa')
 
 @section('header')
-    <x-ui.page-header title="KRS Mahasiswa" pretitle="Mahasiswa">
+    <x-ui.page-header title="KRS Mahasiswa" pretitle="Akademik">
         <x-slot:actions>
             @if($mahasiswa && ($isSuperadmin ?? false))
                 <a href="{{ route('akd.krs.index', ['clear' => 1]) }}" class="btn btn-outline-secondary">

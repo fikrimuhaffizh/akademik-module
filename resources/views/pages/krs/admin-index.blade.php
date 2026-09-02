@@ -3,7 +3,7 @@
 @section('title', 'KRS Mahasiswa — Admin')
 
 @section('content')
-<x-ui.page-header title="KRS Mahasiswa" pretitle="Admin">
+<x-ui.page-header title="KRS Mahasiswa" pretitle="Akademik">
     <x-slot:actions>
         <a href="{{ route('akd.krs.create') }}" class="btn btn-primary">
             <i class="ti ti-plus me-1"></i> Tambah KRS

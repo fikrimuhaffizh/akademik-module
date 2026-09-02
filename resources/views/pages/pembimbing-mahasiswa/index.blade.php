@@ -1,7 +1,7 @@
 @extends('akademik::layouts.akademik-layout')
 
 @section('header')
-    <x-ui.page-header title="Pembimbing Mahasiswa" pretitle="Perkuliahan">
+    <x-ui.page-header title="Pembimbing Mahasiswa" pretitle="Akademik">
         <x-slot:actions>
             <x-ui.button type="create" class="ajax-modal-btn" data-url="{{ route('akd.pembimbing-mahasiswa.create') }}" data-modal-title="Tambah Pembimbing Mahasiswa" />
             <a href="{{ route('akd.pembimbing-mahasiswa.import.index') }}" class="btn btn-outline-primary btn-sm">

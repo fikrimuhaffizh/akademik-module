@@ -3,7 +3,7 @@
 @section('title', 'Kelola Nilai — Admin')
 
 @section('content')
-<x-ui.page-header title="Nilai" pretitle="Admin">
+<x-ui.page-header title="Nilai" pretitle="Akademik">
     <x-slot:actions>
         <a href="{{ route('akd.nilai.template') }}" class="btn btn-outline-secondary">
             <i class="ti ti-download me-1"></i> Template
