@@ -21,7 +21,7 @@
     },
     "portal": {
         "title": "Akademik",
-        "description": "Operasi akademik & siklus hidup mahasiswa — KRS, nilai, penawaran, jadwal, perkuliahan",
+        "description": "Siklus akademik seperti KRS, perkuliahan dan penilaian",
         "icon": "clipboard-check",
         "group": "academic",
         "priority": 70,

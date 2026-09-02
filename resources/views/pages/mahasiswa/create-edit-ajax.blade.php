@@ -1,4 +1,4 @@
-@extends('akademik::layouts.akademik-layout')
+@extends('layouts.' . active_theme() . '.app')
 
 @section('content')
     <form id="form-mahasiswa" action="{{ isset($row) ? route('akd.mahasiswa.update', encryptId($row->mahasiswa_id)) : route('akd.mahasiswa.store') }}" method="POST">

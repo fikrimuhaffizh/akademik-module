@@ -1,4 +1,6 @@
-@extends('akademik::layouts.akademik-layout')
+@extends('layouts.' . active_theme() . '.app')
+
+@section('title', 'Kalender Akademik')
 
 @section('header')
     <x-ui.page-header title="Kalender Akademik" pretitle="Perkuliahan">

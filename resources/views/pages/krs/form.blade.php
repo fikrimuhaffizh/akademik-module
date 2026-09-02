@@ -1,4 +1,4 @@
-@extends('akademik::layouts.akademik-layout')
+@extends('layouts.' . active_theme() . '.app')
 
 @php
     $krsId = $krs?->encrypted_krs_id;

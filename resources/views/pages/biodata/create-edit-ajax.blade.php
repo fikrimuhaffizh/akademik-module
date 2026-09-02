@@ -1,4 +1,4 @@
-@extends('akademik::layouts.akademik-layout')
+@extends('layouts.' . active_theme() . '.app')
 
 @section('content')
     <form id="form-biodata" action="{{ isset($row) ? route('akd.biodata.update', encryptId($row->biodata_id)) : route('akd.biodata.store') }}" method="POST">

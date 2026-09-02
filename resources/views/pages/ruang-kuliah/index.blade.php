@@ -1,4 +1,6 @@
-@extends('akademik::layouts.akademik-layout')
+@extends('layouts.' . active_theme() . '.app')
+
+@section('title', 'Ruang Kuliah')
 
 @section('header')
     <x-ui.page-header title="Ruang Kuliah" pretitle="Pengaturan">
