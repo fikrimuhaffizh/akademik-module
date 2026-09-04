@@ -3,13 +3,13 @@
 namespace Modules\Akademik\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use Modules\Akademik\Services\NilaiService;
-use Modules\Akademik\Services\NilaiImportService;
-use Modules\Akademik\Services\MahasiswaService;
 use Illuminate\Http\Request;
+use Modules\Akademik\Http\Requests\NilaiImportRequest;
 use Modules\Akademik\Http\Requests\NilaiStoreRequest;
 use Modules\Akademik\Http\Requests\NilaiUpdateRequest;
-use Modules\Akademik\Http\Requests\NilaiImportRequest;
+use Modules\Akademik\Services\MahasiswaService;
+use Modules\Akademik\Services\NilaiImportService;
+use Modules\Akademik\Services\NilaiService;
 use Yajra\DataTables\Facades\DataTables;
 
 class NilaiController extends Controller
@@ -42,6 +42,7 @@ class NilaiController extends Controller
 
         if ($isAdmin) {
             $kelasOptions = $this->importService->getKelasOptions();
+
             return view('akademik::pages.nilai.admin-index', compact('kelasOptions'));
         }
 
@@ -61,11 +62,11 @@ class NilaiController extends Controller
     {
         $query = $this->nilaiService->getFilteredQuery($request->all());
 
-        return Datatables::of($query)
-            ->editColumn('mahasiswa_id', fn($row) => $row->mahasiswa?->nama ?? '-')
-            ->editColumn('mata_kuliah_id', fn($row) => $row->mataKuliah?->nama ?? '-')
-            ->editColumn('nilai_huruf', fn($row) => $row->nilai_huruf ?? '-')
-            ->editColumn('is_lulus', fn($row) => $row->is_lulus
+        return DataTables::of($query)
+            ->editColumn('mahasiswa_id', fn ($row) => $row->mahasiswa?->nama ?? '-')
+            ->editColumn('mata_kuliah_id', fn ($row) => $row->mataKuliah?->nama ?? '-')
+            ->editColumn('nilai_huruf', fn ($row) => $row->nilai_huruf ?? '-')
+            ->editColumn('is_lulus', fn ($row) => $row->is_lulus
                 ? '<span class="badge bg-green-lt text-green">Lulus</span>'
                 : '<span class="badge bg-red-lt text-red">Belum</span>')
             ->rawColumns(['is_lulus'])
@@ -126,6 +127,9 @@ class NilaiController extends Controller
 
         $result = $this->importService->importFromExcel($kelasId, storage_path("app/{$filePath}"));
 
+        // Hapus file temp setelah diproses
+        @unlink(storage_path("app/{$filePath}"));
+
         return jsonSuccess("Import selesai: {$result['success']} berhasil, {$result['failed']} gagal.", $result);
     }
 
@@ -145,7 +149,7 @@ class NilaiController extends Controller
         };
 
         return response()->stream($callback, 200, [
-            'Content-Type'        => 'text/csv',
+            'Content-Type' => 'text/csv',
             'Content-Disposition' => 'attachment; filename="template-nilai.csv"',
         ]);
     }
@@ -160,7 +164,9 @@ class NilaiController extends Controller
             ? decryptIdIfEncrypted($request->get('mahasiswa_id'))
             : $this->resolveMahasiswaId();
 
-        if (! $mahasiswaId) abort(404);
+        if (! $mahasiswaId) {
+            abort(404);
+        }
 
         $periodeId = $request->get('periode_akademik_id');
         $khs = $this->nilaiService->getKhs($mahasiswaId, $periodeId);
@@ -174,7 +180,9 @@ class NilaiController extends Controller
             ? decryptIdIfEncrypted($request->get('mahasiswa_id'))
             : $this->resolveMahasiswaId();
 
-        if (! $mahasiswaId) abort(404);
+        if (! $mahasiswaId) {
+            abort(404);
+        }
 
         $transkrip = $this->nilaiService->getTranskrip($mahasiswaId);
 
@@ -186,8 +194,10 @@ class NilaiController extends Controller
         $user = auth()->user();
         if ($user && hasRole('Mahasiswa')) {
             $mhs = $this->mahasiswaService->getByUserId($user->id);
+
             return $mhs?->mahasiswa_id;
         }
+
         return null;
     }
 }
