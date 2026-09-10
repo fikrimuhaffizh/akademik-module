@@ -23,6 +23,7 @@ use Modules\Akademik\Http\Controllers\PeriodeAkademikController;
 use Modules\Akademik\Http\Controllers\RiwayatStatusController;
 use Modules\Akademik\Http\Controllers\RuangKuliahController;
 use Modules\Akademik\Http\Controllers\TahunAjaranController;
+use Modules\Akademik\Http\Controllers\MahasiswaDraftController;
 use Modules\Akademik\Http\Controllers\TransferController;
 use Illuminate\Support\Facades\Route;
 
@@ -162,4 +163,12 @@ Route::middleware(['auth', 'check.expired', 'module:akademik'])->prefix('akd')->
         Route::post('{batchId}/commit', [MahasiswaImportController::class, 'commit'])->name('commit');
         Route::post('{batchId}/cancel', [MahasiswaImportController::class, 'cancel'])->name('cancel');
     });
+
+    // --- Mahasiswa Draft (PMB → Akademik Sync) ---
+    Route::get('mahasiswa-draft/data', [MahasiswaDraftController::class, 'data'])->name('mahasiswa-draft.data');
+    Route::get('mahasiswa-draft', [MahasiswaDraftController::class, 'index'])->name('mahasiswa-draft.index');
+    Route::get('mahasiswa-draft/{id}', [MahasiswaDraftController::class, 'show'])->name('mahasiswa-draft.show');
+    Route::put('mahasiswa-draft/{id}', [MahasiswaDraftController::class, 'update'])->name('mahasiswa-draft.update');
+    Route::post('mahasiswa-draft/sync', [MahasiswaDraftController::class, 'sync'])->name('mahasiswa-draft.sync');
+    Route::post('mahasiswa-draft/submit', [MahasiswaDraftController::class, 'submit'])->name('mahasiswa-draft.submit');
 });

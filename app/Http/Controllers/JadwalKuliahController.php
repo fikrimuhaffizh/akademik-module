@@ -3,13 +3,13 @@
 namespace Modules\Akademik\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use Modules\Akademik\Http\Requests\JadwalKuliahRequest;
-use Modules\Akademik\Services\JadwalKuliahService;
-use Modules\Akademik\Services\RuangKuliahService;
-use Modules\Akademik\Services\KelasKuliahService;
 use Illuminate\Http\Request;
-use Yajra\DataTables\DataTables;
+use Modules\Akademik\Http\Requests\JadwalKuliahRequest;
 use Modules\Akademik\Models\JadwalKuliah;
+use Modules\Akademik\Services\JadwalKuliahService;
+use Modules\Akademik\Services\KelasKuliahService;
+use Modules\Akademik\Services\RuangKuliahService;
+use Yajra\DataTables\DataTables;
 
 class JadwalKuliahController extends Controller
 {
@@ -33,17 +33,20 @@ class JadwalKuliahController extends Controller
 
     public function data(Request $request)
     {
-        return DataTables::of($this->service->getFilteredQuery($request->all()))
+        $query = $this->service->getFilteredQuery($request->all());
+        $overlapMap = $this->service->buildOverlapMap(clone $query);
+
+        return DataTables::of($query)
             ->addIndexColumn()
             ->addColumn('kelas', fn ($r) => $r->kelas?->nama_kelas ?? '-')
             ->addColumn('ruang', fn ($r) => $r->ruang ? $r->ruang->nama : ($r->isOnline() ? '<span class="badge bg-info-lt text-info">Online</span>' : '-'))
             ->editColumn('hari', fn ($r) => ucfirst($r->hari))
-            ->addColumn('waktu', fn ($r) => $r->jam_mulai . ' - ' . $r->jam_selesai)
-            ->addColumn('status', function ($r) {
-                $isOverlap = $this->service->checkOverlap($r);
-                if ($isOverlap) {
+            ->addColumn('waktu', fn ($r) => $r->jam_mulai.' - '.$r->jam_selesai)
+            ->addColumn('status', function ($r) use ($overlapMap) {
+                if (! empty($overlapMap[$r->jadwal_id])) {
                     return '<span class="status status-danger">Overlap (Konflik)</span>';
                 }
+
                 return '<span class="status status-success">Aman</span>';
             })
             ->addColumn('action', fn ($r) => view('components.ui.datatables-actions', [

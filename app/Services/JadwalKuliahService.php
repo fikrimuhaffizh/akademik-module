@@ -2,13 +2,13 @@
 
 namespace Modules\Akademik\Services;
 
-use Modules\Akademik\Models\JadwalKuliah;
-use Modules\Akademik\Models\RuangKuliah;
-use Modules\Akademik\Models\PembebananDosen;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Modules\Akademik\Models\JadwalKuliah;
+use Modules\Akademik\Models\PembebananDosen;
+use Modules\Akademik\Models\RuangKuliah;
 
 class JadwalKuliahService
 {
@@ -121,9 +121,76 @@ class JadwalKuliahService
         ];
     }
 
+    /**
+     * Deteksi overlap untuk banyak jadwal sekaligus (datatable).
+     * Mengembalikan map [jadwal_id => true] untuk jadwal yang bentrok
+     * ruang atau dosen pengampu. Dua batch query, bukan 2-3 query per baris.
+     */
+    public function buildOverlapMap($query): array
+    {
+        $jadwals = $query->get();
+        $relevant = $jadwals->filter(fn ($j) => $j->ruang_id);
+        if ($relevant->isEmpty()) {
+            return [];
+        }
+
+        $kelasIds = $relevant->pluck('kelas_id')->unique()->all();
+
+        // Peta kelas -> dosen pengampu (1 query untuk semua kelas terkait)
+        $dosenByKelas = PembebananDosen::whereIn('kelas_id', $kelasIds)
+            ->get()
+            ->groupBy('kelas_id')
+            ->map(fn ($c) => $c->pluck('pegawai_id')->all())
+            ->all();
+
+        // Kandidat bentrok: jadwal lain di hari & rentang jam yang sama (1 query)
+        $candidates = JadwalKuliah::query()
+            ->whereIn('hari', $relevant->pluck('hari')->unique()->all())
+            ->where(function ($q) use ($relevant) {
+                foreach ($relevant as $j) {
+                    $q->orWhere(function ($sq) use ($j) {
+                        $sq->where('hari', $j->hari)
+                            ->where('jam_mulai', '<', $j->jam_selesai)
+                            ->where('jam_selesai', '>', $j->jam_mulai);
+                    });
+                }
+            })
+            ->with('kelas.pembebananDosens')
+            ->get();
+
+        $dosenByJadwal = [];
+        foreach ($candidates as $c) {
+            $dosenByJadwal[$c->jadwal_id] = $c->kelas?->pembebananDosens?->pluck('pegawai_id')->all() ?? [];
+        }
+
+        $map = [];
+        foreach ($relevant as $j) {
+            $clashes = $candidates->filter(function ($c) use ($j) {
+                return $c->jadwal_id !== $j->jadwal_id
+                    && $c->hari === $j->hari
+                    && $c->jam_mulai < $j->jam_selesai
+                    && $c->jam_selesai > $j->jam_mulai;
+            });
+
+            foreach ($clashes as $c) {
+                $ruangClash = (int) $c->ruang_id === (int) $j->ruang_id;
+                $dosenClash = ! empty(array_intersect(
+                    $dosenByJadwal[$c->jadwal_id] ?? [],
+                    $dosenByKelas[$j->kelas_id] ?? []
+                ));
+                if ($ruangClash || $dosenClash) {
+                    $map[$j->jadwal_id] = true;
+                    break;
+                }
+            }
+        }
+
+        return $map;
+    }
+
     public function checkOverlap(JadwalKuliah $jadwal): bool
     {
-        if ($jadwal->isOnline() || !$jadwal->ruang_id) {
+        if ($jadwal->isOnline() || ! $jadwal->ruang_id) {
             return false;
         }
 
@@ -165,8 +232,8 @@ class JadwalKuliahService
      * Online (is_online) diabaikan. Jadwal dengan id = $ignoreJadwalId
      * dikecualikan (utk update record itu sendiri).
      *
-     * @param array $input harus berisi kelas_id, hari, jam_mulai, jam_selesai,
-     *                       metode_pembelajaran (string), dan ruang_id (nullable)
+     * @param  array  $input  harus berisi kelas_id, hari, jam_mulai, jam_selesai,
+     *                        metode_pembelajaran (string), dan ruang_id (nullable)
      */
     public function findConflicts(array $input, ?int $ignoreJadwalId = null): array
     {
@@ -191,9 +258,9 @@ class JadwalKuliahService
                 ->first();
 
             if ($bentrok) {
-                $conflicts['ruang_id'] = 'Ruang "' . ($ruang?->nama ?? $ruangId)
-                    . '" sudah dipakai kelas ' . ($bentrok->kelas?->nama_kelas ?? $bentrok->kelas_id)
-                    . ' pada ' . ucfirst($hari) . ' ' . $bentrok->jam_mulai . '-' . $bentrok->jam_selesai . '.';
+                $conflicts['ruang_id'] = 'Ruang "'.($ruang?->nama ?? $ruangId)
+                    .'" sudah dipakai kelas '.($bentrok->kelas?->nama_kelas ?? $bentrok->kelas_id)
+                    .' pada '.ucfirst($hari).' '.$bentrok->jam_mulai.'-'.$bentrok->jam_selesai.'.';
             }
         }
 
@@ -213,8 +280,8 @@ class JadwalKuliahService
 
                 if ($bentrok) {
                     $conflicts['kelas_id'] = 'Dosen pengampu kelas ini bentrok: sudah mengajar kelas '
-                        . ($bentrok->kelas?->nama_kelas ?? $bentrok->kelas_id)
-                        . ' pada ' . ucfirst($hari) . ' ' . $bentrok->jam_mulai . '-' . $bentrok->jam_selesai . '.';
+                        .($bentrok->kelas?->nama_kelas ?? $bentrok->kelas_id)
+                        .' pada '.ucfirst($hari).' '.$bentrok->jam_mulai.'-'.$bentrok->jam_selesai.'.';
                 }
             }
         }

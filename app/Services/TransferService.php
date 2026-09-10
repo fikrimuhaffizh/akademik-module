@@ -2,10 +2,10 @@
 
 namespace Modules\Akademik\Services;
 
-use Modules\Akademik\Models\Transfer;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
+use Modules\Akademik\Models\Transfer;
 use RuntimeException;
 
 class TransferService
@@ -27,6 +27,7 @@ class TransferService
         if (! empty($filters['status'])) {
             $query->where('status', $filters['status']);
         }
+
         return $query;
     }
 
@@ -45,6 +46,7 @@ class TransferService
         return DB::transaction(function () use ($data) {
             $entity = Transfer::create($data);
             logActivity('mahasiswa', sprintf('Menambah transfer mahasiswa ID: %d, jenis: %s', $entity->mahasiswa_id, $entity->jenis), $entity);
+
             return $entity;
         });
     }
@@ -55,6 +57,7 @@ class TransferService
             $entity = $this->findById($id);
             $entity->update($data);
             logActivity('mahasiswa', 'Memperbarui transfer mahasiswa', $entity);
+
             return $entity;
         });
     }
@@ -64,13 +67,12 @@ class TransferService
         return DB::transaction(function () use ($id) {
             $entity = $this->findById($id);
             logActivity('mahasiswa', 'Menghapus transfer mahasiswa', null);
+
             return $entity->delete();
         });
     }
 
-    // ═══════════════════════════════════════════════════════════
     //  APPROVAL WORKFLOW (M-06)
-    // ═══════════════════════════════════════════════════════════
 
     /**
      * Setujui transfer mahasiswa.

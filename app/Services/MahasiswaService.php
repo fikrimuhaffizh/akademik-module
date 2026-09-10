@@ -173,12 +173,23 @@ class MahasiswaService
     }
 
     /**
-     * Create mahasiswa dari PublishMahasiswaService (new orchestrator).
-     * Includes RiwayatStatus recording.
+     * Create mahasiswa dari PMB.
+     * Akademik resolve kurikulum sendiri dari prodi_id + angkatan.
+     * PMB tidak perlu passing kurikulum_kode.
      */
     public function createFromPmb(array $payload): int
     {
         return DB::transaction(function () use ($payload) {
+            // Resolve kurikulum sendiri (bukan dari PMB)
+            $kurikulumKode = null;
+            try {
+                $settingProdi = app(SettingProdiService::class)
+                    ->getKurikulumForAngkatan($payload['prodi_id'], $payload['angkatan']);
+                $kurikulumKode = $settingProdi?->kurikulum?->kode_kurikulum;
+            } catch (\Throwable $e) {
+                report($e);
+            }
+
             $mahasiswa = Mahasiswa::updateOrCreate(
                 ['nim' => $payload['nim']],
                 [
@@ -186,7 +197,7 @@ class MahasiswaService
                     'nama' => $payload['nama'],
                     'prodi_id' => $payload['prodi_id'],
                     'angkatan' => $payload['angkatan'],
-                    'kurikulum_kode' => $payload['kurikulum_kode'] ?? null,
+                    'kurikulum_kode' => $kurikulumKode,
                     'pmb_pendaftar_id' => $payload['pmb_pendaftar_id'] ?? null,
                     'status' => 'aktif',
                     'jenis_masuk' => $payload['jenis_masuk'] ?? 'reguler',
@@ -209,7 +220,7 @@ class MahasiswaService
             // Auto-create StatusSemester untuk semester 1
             app(StatusSemesterService::class)->create([
                 'mahasiswa_id'     => $mahasiswa->mahasiswa_id,
-                'periode_akademik_id' => null, // akan diisi saat periode aktif
+                'periode_akademik_id' => null,
                 'status'           => 'aktif',
                 'semester_ke'      => 1,
             ]);

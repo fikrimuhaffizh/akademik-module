@@ -3,9 +3,10 @@
 namespace Modules\Akademik\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use Modules\Akademik\Services\MahasiswaService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Modules\Akademik\Http\Requests\Api\CreateFromPmbRequest;
+use Modules\Akademik\Services\MahasiswaService;
 
 /**
  * REST API — Student data.
@@ -88,6 +89,35 @@ class MahasiswaApiController extends Controller
                 'prodi' => $item->prodi ? $item->prodi->name : null,
                 'status' => $item->status,
             ],
+        ]);
+    }
+
+    /**
+     * POST /api/v1/mhs/mahasiswa/create-from-pmb
+     *
+     * Create mahasiswa dari PMB. Akademik resolve kurikulum sendiri.
+     */
+    public function createFromPmb(CreateFromPmbRequest $request): JsonResponse
+    {
+        $mahasiswaId = $this->mahasiswaService->createFromPmb($request->validated());
+
+        return response()->json([
+            'success' => true,
+            'data' => ['mahasiswa_id' => $mahasiswaId],
+        ], 201);
+    }
+
+    /**
+     * GET /api/v1/mhs/mahasiswa/nim-check?nim=...
+     *
+     * Cek apakah NIM sudah ada.
+     */
+    public function nimCheck(Request $request): JsonResponse
+    {
+        $nim = $request->input('nim', '');
+
+        return response()->json([
+            'exists' => $this->mahasiswaService->nimExists($nim),
         ]);
     }
 }

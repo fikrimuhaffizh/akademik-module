@@ -25,9 +25,7 @@ class NilaiController extends Controller
         $this->middleware('permission:akd.nilai.delete')->only(['destroy']);
     }
 
-    // ═══════════════════════════════════════════════════════════
     // ADMIN: Import + CRUD nilai
-    // ═══════════════════════════════════════════════════════════
 
     /**
      * Admin: index page — shows import form + nilai table.
@@ -154,9 +152,7 @@ class NilaiController extends Controller
         ]);
     }
 
-    // ═══════════════════════════════════════════════════════════
     // MAHASISWA: KHS + Transkrip (read-only)
-    // ═══════════════════════════════════════════════════════════
 
     public function khs(Request $request)
     {

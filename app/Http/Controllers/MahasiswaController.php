@@ -3,21 +3,19 @@
 namespace Modules\Akademik\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
+use Maatwebsite\Excel\Facades\Excel;
+use Modules\Akademik\Exports\MahasiswaExport;
 use Modules\Akademik\Http\Requests\MahasiswaRequest;
 use Modules\Akademik\Services\MahasiswaService;
-use Illuminate\Http\Request;
-use Yajra\DataTables\Facades\DataTables;
-use Modules\Akademik\Exports\MahasiswaExport;
-use Maatwebsite\Excel\Facades\Excel;
 use Modules\HrCore\Services\StrukturOrganisasiService;
+use Yajra\DataTables\Facades\DataTables;
 
 class MahasiswaController extends Controller
 {
     public function __construct(protected MahasiswaService $service, protected StrukturOrganisasiService $strukturService)
     {
-        // export & searchSelect2 ikut di-gate view —
-        // sebelumnya terbuka sehingga seluruh PII mahasiswa bisa diunduh/
-        // di-enumerasi oleh semua user login.
+        // export & searchSelect2 ikut di-gate view (melindungi PII mahasiswa).
         $this->middleware('permission:akd.mahasiswa.view')->only(['index', 'data', 'export', 'searchSelect2']);
         $this->middleware('permission:akd.mahasiswa.create')->only(['create', 'store']);
         $this->middleware('permission:akd.mahasiswa.update')->only(['edit', 'update']);
@@ -48,8 +46,9 @@ class MahasiswaController extends Controller
                 $angkatan = e($row->angkatan ?? '-');
                 $semester = e($row->semester_masuk ?? '-');
                 $jenisMasuk = e(ucfirst($row->jenis_masuk ?? '-'));
+
                 return "<div><strong>{$nama}</strong> <span class=\"text-secondary ms-1\">({$nim})</span></div>"
-                    . "<div class=\"text-secondary small mt-1\">{$prodi} • Angkatan {$angkatan} • Semester Masuk {$semester} • {$jenisMasuk}</div>";
+                    ."<div class=\"text-secondary small mt-1\">{$prodi} • Angkatan {$angkatan} • Semester Masuk {$semester} • {$jenisMasuk}</div>";
             })
             ->addColumn('status_badge', function ($row) {
                 $badge = status_badge($row->status);
@@ -58,6 +57,7 @@ class MahasiswaController extends Controller
                     $tgl = formatTanggalIndo($riwayat->tgl_efektif);
                     $badge .= "<div class=\"text-secondary small mt-1\">{$riwayat->status_lama} → {$riwayat->status_baru} ({$tgl})</div>";
                 }
+
                 return $badge;
             })
             ->addColumn('kurikulum', function ($row) {
@@ -89,25 +89,28 @@ class MahasiswaController extends Controller
     public function store(MahasiswaRequest $request)
     {
         $this->service->create($request->validated());
+
         return jsonSuccess('Mahasiswa berhasil ditambahkan.', null, ['reload' => true]);
     }
 
     public function edit(string $id)
     {
         $row = $this->service->findById($id);
+
         return view('akademik::pages.mahasiswa.create-edit-ajax', compact('row'));
     }
 
     public function update(MahasiswaRequest $request, string $id)
     {
         $this->service->update($id, $request->validated());
+
         return jsonSuccess('Mahasiswa berhasil diperbarui.', null, ['reload' => true]);
     }
 
     public function export(Request $request)
     {
         $filters = $request->only(['search', 'status', 'angkatan', 'prodi_id']);
-        $filename = 'mahasiswa-' . now()->format('Y-m-d-His') . '.xlsx';
+        $filename = 'mahasiswa-'.now()->format('Y-m-d-His').'.xlsx';
 
         return Excel::download(new MahasiswaExport($filters), $filename);
     }
@@ -115,6 +118,7 @@ class MahasiswaController extends Controller
     public function destroy(string $id)
     {
         $this->service->delete($id);
+
         return jsonSuccess('Mahasiswa berhasil dihapus.', null, ['reload' => true]);
     }
 }
