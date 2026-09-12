@@ -127,9 +127,11 @@ class KrsController extends Controller
     public function monitoring(Request $request)
     {
         $periode = $this->periodeService->getAktif();
-        $data = $periode ? $this->krsService->getMonitoring($periode->periode_akademik_id) : collect();
+        $angkatan = $request->query('angkatan');
+        $data = $periode ? $this->krsService->getMonitoring($periode->periode_akademik_id, $angkatan) : collect();
+        $angkatans = $this->mahasiswaService->getAngkatans();
 
-        return view('akademik::pages.krs.monitoring', compact('periode', 'data'));
+        return view('akademik::pages.krs.monitoring', compact('periode', 'data', 'angkatans', 'angkatan'));
     }
 
     // MAHASISWA: KRS pengisian

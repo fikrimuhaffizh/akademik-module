@@ -7,15 +7,48 @@ use Modules\Akademik\Models\Mahasiswa;
 use Modules\Akademik\Models\Biodata;
 use Modules\Akademik\Models\RiwayatStatus;
 use Modules\Akademik\Models\StatusSemester;
+use Modules\Akademik\Services\MahasiswaService;
+use Modules\Referensi\Services\SysRefService;
+use Modules\Account\Models\Role;
 use Modules\Account\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Collection as SupportCollection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 class MahasiswaDraftService
 {
     // NIM tidak lagi digenerate di sini — memakai nim_final bawaan PMB.
+
+    public function __construct(
+        protected SysRefService $sysRefService,
+    ) {}
+
+    /**
+     * Angkatan list for draft filter dropdowns.
+     * Sumber utama: master data Referensi (sys_refs, grup angkatan_mahasiswa);
+     * digabung dengan angkatan yang sudah ada di akd_mahasiswa_draft.
+     */
+    public function getAngkatans(): SupportCollection
+    {
+        $master = $this->sysRefService
+            ->getActiveByGrup('angkatan_mahasiswa')
+            ->pluck('label')
+            ->map(fn ($label) => (string) $label);
+
+        $terpakai = MahasiswaDraft::query()
+            ->distinct()
+            ->orderBy('angkatan')
+            ->pluck('angkatan')
+            ->map(fn ($angkatan) => (string) $angkatan);
+
+        return $master
+            ->merge($terpakai)
+            ->unique()
+            ->sort()
+            ->values();
+    }
 
     public function getBaseQuery(): Builder
     {
@@ -55,11 +88,84 @@ class MahasiswaDraftService
         return $query;
     }
 
-    public function findById(int $id): ?MahasiswaDraft
+    public function findById(string|int $id): ?MahasiswaDraft
     {
-        return MahasiswaDraft::with(['prodi'])->find($id);
+        // Terima id mentah maupun ter-enkripsi. decryptIdIfEncrypted() bisa
+        // mengembalikan string asli bila dekripsi gagal — fallback ke cari PK langsung.
+        $decrypted = decryptIdIfEncrypted((string) $id);
+
+        return MahasiswaDraft::with(['prodi'])->find(is_int($decrypted) ? $decrypted : $id);
     }
 
+    /**
+     * Set kurikulum untuk banyak draft sekaligus.
+     *
+     * mode 'manual': semua draft dipaksa ke kurikulum_kode yang dipilih.
+     * mode 'auto'  : kurikulum di-resolve per draft via SettingProdi
+     *                (kur_kurikulum.prodi_id = prodi draft, angkatan_list
+     *                memuat angkatan draft) — kurikulum dan prodi berbagi
+     *                kode orgunit yang sama, jadi binding selalu konsisten.
+     */
+    public function setKurikulumBulk(array $draftIds, string $mode, ?string $kurikulumKode = null): array
+    {
+        $updated = 0;
+        $errors  = [];
+
+        foreach ($draftIds as $id) {
+            try {
+                DB::transaction(function () use ($id, $mode, $kurikulumKode, &$updated, &$errors) {
+                    $draft = MahasiswaDraft::findOrFail($id);
+
+                    if ($mode === 'manual') {
+                        $draft->update(['kurikulum_kode' => $kurikulumKode]);
+                        $updated++;
+
+                        return;
+                    }
+
+                    // Auto: resolve via SettingProdi (prodi + angkatan).
+                    $kode = app(\Modules\Kurikulum\Services\SettingProdiService::class)
+                        ->getKurikulumForAngkatan((int) $draft->prodi_id, (int) $draft->angkatan)
+                        ?->kurikulum?->kode_kurikulum;
+
+                    if (empty($kode)) {
+                        $errors[] = "Draft {$draft->nim}: tidak ada binding kurikulum untuk prodi + angkatan {$draft->angkatan} di Setting Prodi";
+
+                        return;
+                    }
+
+                    $draft->update(['kurikulum_kode' => $kode]);
+                    $updated++;
+                });
+            } catch (\Throwable $e) {
+                report($e);
+                $errors[] = "Draft #{$id}: " . $e->getMessage();
+            }
+        }
+
+        logActivity('akademik', sprintf('Set kurikulum massal: mode=%s, updated=%d, errors=%d', $mode, $updated, count($errors)));
+
+        return ['updated' => $updated, 'errors' => $errors];
+    }
+    /**
+     * Set status akhir draft (draft | submitted | batal).
+     * Dipakai aksi "Set Status Akhir" di datatable draft.
+     */
+    public function setStatusAkhir(int $id, string $status): MahasiswaDraft
+    {
+        return DB::transaction(function () use ($id, $status) {
+            $draft = MahasiswaDraft::findOrFail($id);
+            $draft->update(['status_draft' => $status]);
+
+            if ($status === 'submitted') {
+                $draft->update(['submitted_at' => now()]);
+            }
+
+            logActivity('akademik', sprintf('Set status akhir draft mahasiswa %s: %s', $draft->nim, $status), $draft);
+
+            return $draft;
+        });
+    }
     public function update(int $id, array $data): MahasiswaDraft
     {
         return DB::transaction(function () use ($id, $data) {
@@ -135,8 +241,15 @@ class MahasiswaDraftService
                     continue;
                 }
 
-                $camaba = $pendaftaran['camaba'] ?? [];
-                $prodiId = $pendaftaran['prodi_id'] ?? null;
+                $kandidat = $pendaftaran['kandidat'] ?? [];
+                // prodi_id Akademik = HR orgunit (dipetakan dari prodi PMB).
+                // Tanpa mapping, submit dilarang agar tidak salah prodi.
+                $prodiId = $pendaftaran['hr_orgunit_id'] ?? null;
+                if (empty($prodiId)) {
+                    $errors[] = "Pendaftaran {$pmbId}: prodi belum dipetakan ke struktur HR (hr_orgunit_id kosong)";
+
+                    continue;
+                }
                 $angkatan = $pendaftaran['angkatan'] ?? (int) now()->format('Y');
 
                 // NIM hanya dari PMB (nim_final) — Akademik tidak generate sendiri.
@@ -148,30 +261,20 @@ class MahasiswaDraftService
                     continue;
                 }
 
-                // Auto-resolve kurikulum — langsung in-process bila satu server.
+
+                // Auto-resolve kurikulum via SettingProdi (prodi + angkatan).
                 $kurikulumKode = null;
                 try {
-                    if (class_exists(\Modules\Kurikulum\Services\KurikulumService::class)) {
-                        $kurikulumKode = app(\Modules\Kurikulum\Services\KurikulumService::class)
-                            ->getKurikulumByProdiAngkatan($prodiId, $angkatan)?->kode_kurikulum;
-                    } else {
-                        $kurBase = config('pmb.kurikulum_base_url', '');
-                        $kurToken = config('pmb.kurikulum_token', '');
-                        if ($kurBase && $kurToken) {
-                            $kurJson = service_api('kurikulum', 'GET', '/api/v1/kur/kurikulum/resolve', [
-                                'prodi_id' => $prodiId,
-                                'angkatan' => $angkatan,
-                            ], ['base_url' => $kurBase, 'token' => $kurToken]);
-                            $kurikulumKode = $kurJson['data']['kode_kurikulum'] ?? null;
-                        }
-                    }
+                    $kurikulumKode = app(\Modules\Kurikulum\Services\SettingProdiService::class)
+                        ->getKurikulumForAngkatan((int) $prodiId, (int) $angkatan)
+                        ?->kurikulum?->kode_kurikulum;
                 } catch (\Throwable $e) {
                     report($e);
                 }
 
                 // Build full snapshot from PMB data
                 $snapshot = [
-                    'camaba' => $camaba,
+                    'kandidat' => $kandidat,
                     'pendaftaran' => $pendaftaran,
                 ];
 
@@ -179,9 +282,9 @@ class MahasiswaDraftService
                     'tenant_id' => $tenantId,
                     'pmb_pendaftar_id' => $pmbId,
                     'nim' => $nim,
-                    'nama' => $camaba['nama_lengkap'] ?? $pendaftaran['nama'] ?? '-',
-                    'email' => $camaba['email'] ?? null,
-                    'no_hp' => $camaba['no_hp'] ?? null,
+                    'nama' => $kandidat['nama_lengkap'] ?? $pendaftaran['nama'] ?? '-',
+                    'email' => $kandidat['email'] ?? null,
+                    'no_hp' => $kandidat['no_hp'] ?? null,
                     'prodi_id' => $prodiId,
                     'angkatan' => $angkatan,
                     'kurikulum_kode' => $kurikulumKode,
@@ -220,74 +323,117 @@ class MahasiswaDraftService
 
                     $nim = $draft->nim;
                     $snapshot = $draft->snapshot_json ?? [];
-                    $camaba = $snapshot['camaba'] ?? [];
+                    $kandidat = $snapshot['kandidat'] ?? [];
+                    $pendaftaranSnap = $snapshot['pendaftaran'] ?? [];
 
-                    // 1. Create User (username=NIM, password=NIM, role=mahasiswa)
+                    // Validasi preview: email + kurikulum + NIM unik.
+                    $email = trim((string) ($draft->email ?? ''));
+                    if ($email === '' || ! filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                        throw new \RuntimeException("Draft {$draft->draft_id}: email belum diisi / tidak valid, perbaiki di preview.");
+                    }
+                    if (User::where('email', $email)->exists()) {
+                        throw new \RuntimeException("Draft {$draft->draft_id}: email {$email} sudah dipakai akun lain.");
+                    }
+                    if (empty($draft->kurikulum_kode)) {
+                        throw new \RuntimeException("Draft {$draft->draft_id}: kurikulum belum ditentukan, pilih di preview.");
+                    }
+                    if (empty($draft->prodi_id)) {
+                        throw new \RuntimeException("Draft {$draft->draft_id}: prodi belum ditentukan.");
+                    }
+                    if (app(MahasiswaService::class)->nimExists($nim)) {
+                        throw new \RuntimeException("Draft {$draft->draft_id}: NIM {$nim} sudah dipakai mahasiswa lain.");
+                    }
+
+                    // 1. Create User baru (password = NIM dibalik) + role Mahasiswa.
+                    $role = Role::firstOrCreate([
+                        'tenant_id' => $draft->tenant_id,
+                        'name' => 'Mahasiswa',
+                        'guard_name' => 'web',
+                    ]);
                     $user = User::create([
                         'tenant_id' => $draft->tenant_id,
                         'name' => $draft->nama,
-                        'email' => $draft->email ?? $nim . '@draft.local',
-                        'password' => Hash::make($nim),
+                        'email' => $email,
+                        'password' => Hash::make(strrev($nim)),
                         'is_active' => true,
                     ]);
-                    $user->assignRole('mahasiswa');
+                    if (function_exists('setPermissionsTeamId')) {
+                        setPermissionsTeamId((int) $draft->tenant_id);
+                    }
+                    $user->assignRole($role);
+                    // User di koneksi sys_core (transaksi utama tak mencakupnya):
+                    // bila langkah berikut gagal, hapus user agar tidak yatim.
+                    try {
 
-                    // 2. Create Mahasiswa (status=aktif)
-                    $mahasiswa = Mahasiswa::create([
-                        'tenant_id' => $draft->tenant_id,
+                    // 2. Create Mahasiswa via pintu tunggal (metadata: no_pendaftaran + tagihan DU).
+                    $mahasiswaId = app(MahasiswaService::class)->createFromSyncPayload([
                         'nim' => $nim,
+                        'user_id' => $user->id,
                         'nama' => $draft->nama,
-                        'email' => $draft->email,
+                        'email' => $email,
                         'no_hp' => $draft->no_hp,
                         'prodi_id' => $draft->prodi_id,
                         'angkatan' => $draft->angkatan,
                         'kurikulum_kode' => $draft->kurikulum_kode,
-                        'status' => 'aktif',
                         'jenis_masuk' => $draft->jenis_masuk,
                         'sistem_kuliah' => $draft->sistem_kuliah,
-                        'semester_masuk' => 1,
                         'pmb_pendaftar_id' => $draft->pmb_pendaftar_id,
-                        'user_id' => $user->id,
+                        'no_pendaftaran' => $pendaftaranSnap['no_pendaftaran'] ?? null,
+                        'tagihan_du' => [
+                            'tagihan_id' => $pendaftaranSnap['tagihan_daftar_ulang_id'] ?? null,
+                            'lunas' => true,
+                        ],
                     ]);
+                    $mahasiswa = Mahasiswa::findOrFail($mahasiswaId);
 
-                    // 3. Create Biodata (extract from snapshot_json)
-                    Biodata::create([
-                        'tenant_id' => $draft->tenant_id,
-                        'mahasiswa_id' => $mahasiswa->mahasiswa_id,
-                        'nik' => $camaba['nik'] ?? null,
-                        'tempat_lahir' => $camaba['tempat_lahir'] ?? null,
-                        'tgl_lahir' => $camaba['tanggal_lahir'] ?? null,
-                        'jenis_kelamin' => $camaba['jenis_kelamin'] ?? null,
-                        'agama' => $camaba['agama'] ?? null,
-                        'alamat' => $camaba['alamat'] ?? null,
-                        'kota' => $camaba['kota'] ?? null,
-                        'provinsi' => $camaba['provinsi'] ?? null,
-                        'kode_pos' => $camaba['kode_pos'] ?? null,
-                        'nama_ayah' => $camaba['nama_ayah'] ?? null,
-                        'pekerjaan_ayah' => $camaba['pekerjaan_ayah'] ?? null,
-                        'nama_ibu' => $camaba['nama_ibu'] ?? null,
-                        'pekerjaan_ibu' => $camaba['pekerjaan_ibu'] ?? null,
-                    ]);
+                    // 3. Create Biodata penuh dari snapshot PMB.
+                    Biodata::updateOrCreate(
+                        ['mahasiswa_id' => $mahasiswa->mahasiswa_id],
+                        [
+                            'tenant_id' => $draft->tenant_id,
+                            'nik' => $kandidat['nik'] ?? null,
+                            'tempat_lahir' => $kandidat['tempat_lahir'] ?? null,
+                            'tgl_lahir' => $kandidat['tanggal_lahir'] ?? null,
+                            'jenis_kelamin' => $kandidat['jenis_kelamin'] ?? null,
+                            'agama' => $kandidat['agama'] ?? null,
+                            'kewarganegaraan' => $kandidat['kewarganegaraan'] ?? null,
+                            'suku' => $kandidat['suku'] ?? null,
+                            'alamat' => $kandidat['alamat_lengkap'] ?? $kandidat['alamat'] ?? null,
+                            'provinsi_kode' => $kandidat['provinsi_kode'] ?? null,
+                            'kabupaten_kode' => $kandidat['kabupaten_kode'] ?? null,
+                            'kecamatan_kode' => $kandidat['kecamatan_kode'] ?? null,
+                            'kelurahan_kode' => $kandidat['kelurahan_kode'] ?? null,
+                            'kode_pos' => $kandidat['kode_pos'] ?? null,
+                            'nama_ayah' => $kandidat['nama_ayah'] ?? null,
+                            'nik_ayah' => $kandidat['nik_ayah'] ?? null,
+                            'tgl_lahir_ayah' => $kandidat['tgl_lahir_ayah'] ?? null,
+                            'pendidikan_ayah' => $kandidat['pendidikan_ayah'] ?? null,
+                            'pekerjaan_ayah' => $kandidat['pekerjaan_ayah'] ?? null,
+                            'penghasilan_ayah' => $kandidat['penghasilan_ayah'] ?? null,
+                            'nama_ibu' => $kandidat['nama_ibu'] ?? null,
+                            'nik_ibu' => $kandidat['nik_ibu'] ?? null,
+                            'tgl_lahir_ibu' => $kandidat['tgl_lahir_ibu'] ?? null,
+                            'pendidikan_ibu' => $kandidat['pendidikan_ibu'] ?? null,
+                            'pekerjaan_ibu' => $kandidat['pekerjaan_ibu'] ?? null,
+                            'penghasilan_ibu' => $kandidat['penghasilan_ibu'] ?? null,
+                            'nama_wali' => $kandidat['nama_wali'] ?? null,
+                            'nik_wali' => $kandidat['nik_wali'] ?? null,
+                            'tgl_lahir_wali' => $kandidat['tgl_lahir_wali'] ?? null,
+                            'pendidikan_wali' => $kandidat['pendidikan_wali'] ?? null,
+                            'pekerjaan_wali' => $kandidat['pekerjaan_wali'] ?? null,
+                            'penghasilan_wali' => $kandidat['penghasilan_wali'] ?? null,
+                        ]
+                    );
 
-                    // 4. Create RiwayatStatus (null → aktif)
-                    RiwayatStatus::create([
-                        'tenant_id' => $draft->tenant_id,
-                        'mahasiswa_id' => $mahasiswa->mahasiswa_id,
-                        'status_lama' => null,
-                        'status_baru' => 'aktif',
-                        'alasan' => 'Dibuat dari Publish Draft PMB',
-                        'tgl_efektif' => now()->toDateString(),
-                        'diproses_oleh' => 'System (Publish Draft)',
-                    ]);
 
-                    // 5. Create StatusSemester (semester 1, aktif)
-                    StatusSemester::create([
-                        'tenant_id' => $draft->tenant_id,
-                        'mahasiswa_id' => $mahasiswa->mahasiswa_id,
-                        'periode_akademik_id' => null,
-                        'status' => 'aktif',
-                        'semester_ke' => 1,
-                    ]);
+
+                    // 4-5. Riwayat + semester dibuat di createFromSyncPayload (pintu tunggal).
+
+                    } catch (\Throwable $e) {
+                        $user->forceDelete();
+
+                        throw $e;
+                    }
 
                     // 6. Update draft: status_draft='submitted', submitted_at=now()
                     $draft->update([

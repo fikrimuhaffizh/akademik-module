@@ -7,21 +7,26 @@ use Modules\Akademik\Models\Krs;
 use Modules\Akademik\Models\Nilai;
 use Modules\Akademik\Models\PeriodeAkademik;
 use Modules\Kurikulum\Services\KurikulumService;
+use Modules\Kurikulum\Services\SettingProdiService;
+use Modules\Referensi\Services\SysRefService;
 use Modules\Kurikulum\Models\SettingProdi;
 use Modules\Kurikulum\Models\KurikulumMataKuliah;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Collection as SupportCollection;
 use Illuminate\Support\Facades\DB;
 use Modules\Akademik\Models\Biodata;
 use Modules\Akademik\Models\Cekal;
 use Modules\Akademik\Models\Cuti;
 use Modules\Akademik\Services\NilaiService;
+use Modules\Akademik\Services\PeriodeAkademikService;
 
 class MahasiswaService
 {
     public function __construct(
         protected KurikulumService $kurikulumService,
         protected NilaiService $nilaiService,
+        protected SysRefService $sysRefService,
     ) {}
 
     public function getBaseQuery(): Builder
@@ -130,7 +135,7 @@ class MahasiswaService
     {
         return DB::transaction(function () use ($syncData, $nim, $prodiId, $angkatan) {
             $pendaftaran = $syncData['pendaftaran'];
-            $camaba = $syncData['camaba'];
+            $kandidat = $syncData['kandidat'];
             $kurikulumKode = $this->kurikulumService->getKodeKurikulumBinding($prodiId, $angkatan);
 
             // Create or Update Mahasiswa
@@ -140,9 +145,9 @@ class MahasiswaService
                     'tenant_id' => $pendaftaran['tenant_id'],
                     'user_id' => $pendaftaran['user_id'],
                     'pmb_pendaftar_id' => $pendaftaran['pendaftaran_id'] ?? $pendaftaran['pmb_pendaftar_id'] ?? null,
-                    'nama' => $camaba['nama_lengkap'],
-                    'email' => $camaba['email'],
-                    'no_hp' => $camaba['no_hp'] ?? null,
+                    'nama' => $kandidat['nama_lengkap'],
+                    'email' => $kandidat['email'],
+                    'no_hp' => $kandidat['no_hp'] ?? null,
                     'prodi_id' => $prodiId,
                     'angkatan' => $angkatan,
                     'kurikulum_kode' => $kurikulumKode,
@@ -157,18 +162,88 @@ class MahasiswaService
                 ['mahasiswa_id' => $mahasiswa->mahasiswa_id],
                 [
                     'tenant_id' => $mahasiswa->tenant_id,
-                    'nik' => $camaba['nik'],
-                    'tempat_lahir' => $camaba['tempat_lahir'],
-                    'tgl_lahir' => $camaba['tanggal_lahir'],
-                    'jenis_kelamin' => $camaba['jenis_kelamin'],
-                    'agama' => $camaba['agama'],
-                    'alamat' => $camaba['alamat'],
+                    'nik' => $kandidat['nik'],
+                    'tempat_lahir' => $kandidat['tempat_lahir'],
+                    'tgl_lahir' => $kandidat['tanggal_lahir'],
+                    'jenis_kelamin' => $kandidat['jenis_kelamin'],
+                    'agama' => $kandidat['agama'],
+                    'alamat' => $kandidat['alamat'],
                 ]
             );
 
             logActivity('mahasiswa', sprintf('Sinkronisasi MHS dari PMB: %s - %s', $mahasiswa->nim, $mahasiswa->nama), $mahasiswa);
 
             return $mahasiswa;
+        });
+    }
+
+    /**
+     * Create mahasiswa dari payload sync PMB (satu pintu untuk submit draft).
+     * Kurikulum diambil dari payload (pilihan preview); bila kosong, resolve
+     * otomatis via SettingProdi. Metadata menyimpan no_pendaftaran +
+     * referensi tagihan DU (dianggap lunas, tanpa terbitkan tagihan baru).
+     */
+    public function createFromSyncPayload(array $payload): int
+    {
+        return DB::transaction(function () use ($payload) {
+            $kurikulumKode = $payload['kurikulum_kode'] ?? null;
+            if (! $kurikulumKode) {
+                try {
+                    $kurikulumKode = app(SettingProdiService::class)
+                        ->getKurikulumForAngkatan($payload['prodi_id'], $payload['angkatan'])
+                        ?->kurikulum?->kode_kurikulum;
+                } catch (\Throwable $e) {
+                    report($e);
+                }
+            }
+
+            $mahasiswa = Mahasiswa::updateOrCreate(
+                ['nim' => $payload['nim']],
+                [
+                    'user_id' => $payload['user_id'] ?? null,
+                    'nama' => $payload['nama'],
+                    'email' => $payload['email'] ?? null,
+                    'no_hp' => $payload['no_hp'] ?? null,
+                    'prodi_id' => $payload['prodi_id'],
+                    'angkatan' => $payload['angkatan'],
+                    'kurikulum_kode' => $kurikulumKode,
+                    'pmb_pendaftar_id' => $payload['pmb_pendaftar_id'] ?? null,
+                    'status' => 'aktif',
+                    'jenis_masuk' => $payload['jenis_masuk'] ?? 'reguler',
+                    'sistem_kuliah' => $payload['sistem_kuliah'] ?? null,
+                    'semester_masuk' => 1,
+                    'tanggal_awal_masuk' => now()->toDateString(),
+                    'tanggal_daftar_ulang' => now()->toDateString(),
+                    'metadata' => [
+                        'no_pendaftaran' => $payload['no_pendaftaran'] ?? null,
+                        'tagihan_du' => $payload['tagihan_du'] ?? null,
+                        'sync_sumber' => 'pmb_draft',
+                        'sync_at' => now()->toIso8601String(),
+                    ],
+                ]
+            );
+
+            // Record Riwayat Status
+            app(RiwayatStatusService::class)->create([
+                'mahasiswa_id' => $mahasiswa->mahasiswa_id,
+                'status_lama' => null,
+                'status_baru' => 'aktif',
+                'alasan' => 'Dibuat dari Sync PMB (daftar ulang diterima)',
+                'tgl_efektif' => now()->toDateString(),
+                'diproses_oleh' => 'System (Sync PMB)',
+            ]);
+
+            logActivity('mahasiswa', sprintf('Create MHS dari sync PMB: %s - %s', $mahasiswa->nim, $mahasiswa->nama), $mahasiswa);
+
+            // Auto-create StatusSemester untuk semester 1
+            app(StatusSemesterService::class)->create([
+                'mahasiswa_id'     => $mahasiswa->mahasiswa_id,
+                'periode_akademik_id' => app(PeriodeAkademikService::class)->getAktif()?->periode_akademik_id,
+                'status'           => 'aktif',
+                'semester_ke'      => 1,
+            ]);
+
+            return $mahasiswa->mahasiswa_id;
         });
     }
 
@@ -246,11 +321,30 @@ class MahasiswaService
     }
 
     /**
-     * Distinct angkatan list (sorted) for filter dropdowns.
+     * Angkatan list for filter dropdowns.
+     * Sumber utama: master data Referensi (sys_refs, grup angkatan_mahasiswa);
+     * digabung dengan angkatan yang sudah terpakai di akd_mahasiswa
+     * agar data lama tetap muncul di filter.
      */
-    public function getAngkatans(): Collection
+    public function getAngkatans(): SupportCollection
     {
-        return Mahasiswa::distinct()->pluck('angkatan')->sort()->values();
+        $master = $this->sysRefService
+            ->getActiveByGrup('angkatan_mahasiswa')
+            ->pluck('label')
+            ->map(fn ($label) => (string) $label);
+
+        $terpakai = Mahasiswa::query()
+            ->distinct()
+            ->orderBy('angkatan')
+            ->pluck('angkatan')
+            ->map(fn ($angkatan) => (string) $angkatan)
+            ->filter(fn ($angkatan) => $angkatan !== '');
+
+        return $master
+            ->merge($terpakai)
+            ->unique()
+            ->sort()
+            ->values();
     }
 
     /**

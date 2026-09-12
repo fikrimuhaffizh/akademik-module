@@ -31,6 +31,7 @@ class PeriodeAkademikController extends Controller
     {
         return DataTables::of($this->service->getFilteredQuery($request->all()))
             ->addIndexColumn()
+            ->addColumn('periode_tanggal', fn ($r) => '<div class="small">' . e(formatTanggalIndo($r->tgl_mulai)) . '<br><span class="text-secondary">s.d. ' . e(formatTanggalIndo($r->tgl_selesai)) . '</span></div>')
             ->editColumn('is_aktif', fn ($r) => $r->is_aktif ? '<span class="status status-success">Aktif</span>' : '<span class="status status-danger">Non Aktif</span>')
             ->addColumn('action', fn ($r) => view('components.ui.datatables-actions', ['editUrl' => route('akd.periode-akademik.edit', $r->encrypted_periode_akademik_id), 'editModal' => true, 'deleteUrl' => route('akd.periode-akademik.destroy', $r->encrypted_periode_akademik_id)])->render())
             ->rawColumns(['is_aktif', 'action'])->make(true);

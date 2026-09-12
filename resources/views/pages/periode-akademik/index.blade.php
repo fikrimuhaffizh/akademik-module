@@ -21,8 +21,7 @@
                     ['data' => 'DT_RowIndex', 'title' => '#', 'orderable' => false, 'searchable' => false, 'class' => 'text-center', 'width' => '50px'],
                     ['data' => 'nama', 'title' => 'Nama'],
                     ['data' => 'semester', 'title' => 'Semester', 'class' => 'text-center'],
-                    ['data' => 'tahun_mulai', 'title' => 'Thn Mulai', 'class' => 'text-center'],
-                    ['data' => 'tahun_selesai', 'title' => 'Thn Selesai', 'class' => 'text-center'],
+                    ['data' => 'periode_tanggal', 'title' => 'Tanggal Mulai — Selesai', 'orderable' => false, 'searchable' => false],
                     ['data' => 'is_aktif', 'title' => 'Status', 'class' => 'text-center'],
                     ['data' => 'action', 'title' => 'Aksi', 'orderable' => false, 'searchable' => false, 'class' => 'text-center', 'width' => '100px'],
                 ]" />

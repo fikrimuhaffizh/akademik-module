@@ -39,7 +39,7 @@ class MahasiswaApiController extends Controller
             ];
         });
 
-        return response()->json([
+        return jsonSuccess('Hasil pencarian mahasiswa.', null, [
             'results' => $results,
         ]);
     }
@@ -67,7 +67,7 @@ class MahasiswaApiController extends Controller
             ];
         });
 
-        return response()->json($paginator);
+        return jsonPaginated($paginator, 'Daftar mahasiswa berhasil diambil.');
     }
 
     /**
@@ -79,8 +79,7 @@ class MahasiswaApiController extends Controller
     {
         $item = $this->mahasiswaService->findApi(decryptIdIfEncrypted($id));
 
-        return response()->json([
-            'success' => true,
+        return jsonSuccess('Detail mahasiswa berhasil diambil.', null, [
             'data' => [
                 'mahasiswa_id' => $item->encrypted_mahasiswa_id,
                 'nim' => $item->nim,
@@ -101,8 +100,7 @@ class MahasiswaApiController extends Controller
     {
         $mahasiswaId = $this->mahasiswaService->createFromPmb($request->validated());
 
-        return response()->json([
-            'success' => true,
+        return jsonSuccess('Mahasiswa berhasil dibuat dari PMB.', null, [
             'data' => ['mahasiswa_id' => $mahasiswaId],
         ], 201);
     }
@@ -116,7 +114,7 @@ class MahasiswaApiController extends Controller
     {
         $nim = $request->input('nim', '');
 
-        return response()->json([
+        return jsonSuccess('Pengecekan NIM selesai.', null, [
             'exists' => $this->mahasiswaService->nimExists($nim),
         ]);
     }

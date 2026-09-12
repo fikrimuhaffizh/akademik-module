@@ -9,7 +9,7 @@ class CreateFromPmbRequest extends BaseRequest
     public function rules(): array
     {
         return [
-            'nim' => ['required', 'string', 'max:20'],
+            'nim' => ['required', 'string', 'max:30'],
             'user_id' => ['nullable', 'integer'],
             'nama' => ['required', 'string', 'max:255'],
             'prodi_id' => ['required', 'integer'],

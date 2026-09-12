@@ -52,10 +52,12 @@ class MahasiswaController extends Controller
             })
             ->addColumn('status_badge', function ($row) {
                 $badge = status_badge($row->status);
-                $riwayat = $row->riwayatStatus;
+                $riwayat = $row->riwayatStatus->first();
                 if ($riwayat) {
                     $tgl = formatTanggalIndo($riwayat->tgl_efektif);
-                    $badge .= "<div class=\"text-secondary small mt-1\">{$riwayat->status_lama} → {$riwayat->status_baru} ({$tgl})</div>";
+                    $lama = e($riwayat->status_lama ?? '-');
+                    $baru = e($riwayat->status_baru ?? '-');
+                    $badge .= "<div class=\"text-secondary small mt-1\">{$lama} → {$baru} ({$tgl})</div>";
                 }
 
                 return $badge;

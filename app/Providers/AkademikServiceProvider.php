@@ -51,6 +51,7 @@ class AkademikServiceProvider extends BaseModuleServiceProvider
                     ['title' => 'Cekal Mahasiswa',    'route' => 'akd.cekal.index',              'active_routes' => ['akd.cekal.*'],              'icon' => 'shield-check',         'permission' => 'akd.cekal.view'],
                     ['title' => 'Riwayat Status',     'route' => 'akd.riwayat-status.index',     'active_routes' => ['akd.riwayat-status.*'],     'icon' => 'history',               'permission' => 'akd.riwayat-status.view'],
                     ['title' => 'Import Mahasiswa',   'route' => 'akd.mahasiswa.import.index',   'active_routes' => ['akd.mahasiswa.import.*'],   'icon' => 'database-import',       'permission' => 'akd.mahasiswa.view'],
+                    ['title' => 'Mahasiswa Draft (PMB)', 'route' => 'akd.mahasiswa-draft.index', 'active_routes' => ['akd.mahasiswa-draft.*'], 'icon' => 'database-export', 'permission' => 'akd.mahasiswa.view'],
                 ],
             ],
 
@@ -60,7 +61,8 @@ class AkademikServiceProvider extends BaseModuleServiceProvider
                 'icon'      => 'clipboard-check',
                 'permission' => null,
                 'children'  => [
-                    ['title' => 'KRS Mahasiswa',     'route' => 'akd.krs-mahasiswa.index',       'active_routes' => ['akd.krs-mahasiswa.*', 'akd.krs.*'], 'icon' => 'clipboard-list', 'permission' => 'akd.krs.view'],
+                    ['title' => 'KRS Mahasiswa',     'route' => 'akd.krs-mahasiswa.index',       'active_routes' => ['akd.krs-mahasiswa.index', 'akd.krs.index', 'akd.krs.create', 'akd.krs.store', 'akd.krs.edit', 'akd.krs.update', 'akd.krs.destroy', 'akd.krs.data'], 'icon' => 'clipboard-list', 'permission' => 'akd.krs.view'],
+                    ['title' => 'Monitoring KRS',    'route' => 'akd.krs.monitoring',            'active_routes' => ['akd.krs.monitoring'],      'icon' => 'chart-dots',    'permission' => 'akd.krs.view'],
                     ['title' => 'Nilai',             'route' => 'akd.nilai.index',               'active_routes' => ['akd.nilai.*'],              'icon' => 'chart-bar',     'permission' => 'akd.nilai.view'],
                     ['title' => 'Pembimbing',        'route' => 'akd.pembimbing-mahasiswa.index','active_routes' => ['akd.pembimbing-mahasiswa.*'],'icon' => 'user-star',      'permission' => 'akd.pembimbing-mahasiswa.view'],
                     ['title' => 'EDOM',              'route' => 'akd.edom.index',                'active_routes' => ['akd.edom.*'],               'icon' => 'message-star',  'permission' => 'akd.edom.view'],

@@ -33,7 +33,7 @@ return new class extends Migration
             $table->string('status_draft', 20)->default('draft')->index();
             $table->timestamp('submitted_at')->nullable();
 
-            // Full PMB data snapshot (camaba, ortu, alamat, sekolah, nilai, etc.)
+            // Full PMB data snapshot (kandidat, ortu, alamat, sekolah, nilai, etc.)
             $table->json('snapshot_json')->nullable();
 
             $this->addStandardColumns($table);

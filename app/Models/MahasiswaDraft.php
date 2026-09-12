@@ -46,9 +46,9 @@ class MahasiswaDraft extends Model
         return $this->belongsTo(\Modules\HrCore\Models\StrukturOrganisasi::class, 'prodi_id', 'orgunit_id');
     }
 
-    public function getCamabaAttribute(): ?array
+    public function getKandidatAttribute(): ?array
     {
-        return $this->snapshot_json['camaba'] ?? null;
+        return $this->snapshot_json['kandidat'] ?? null;
     }
 
     public function scopeDraft($query)

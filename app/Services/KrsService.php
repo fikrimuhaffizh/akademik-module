@@ -555,12 +555,13 @@ class KrsService
      * Menghitung jumlah mahasiswa per status KRS (belum/terisi/diajukan/
      * disetujui) serta total SKS terisi.
      */
-    public function getMonitoring(int $periodeAkademikId): SupportCollection
+    public function getMonitoring(int $periodeAkademikId, ?string $angkatan = null): SupportCollection
     {
         $mahasiswas = Mahasiswa::with([
             'krs' => fn($q) => $q->where('periode_akademik_id', $periodeAkademikId),
         ])
             ->where('status', 'aktif')
+            ->when($angkatan !== null && $angkatan !== '' && $angkatan !== 'all', fn ($q) => $q->where('angkatan', $angkatan))
             ->orderBy('angkatan')
             ->orderBy('prodi_id')
             ->get();

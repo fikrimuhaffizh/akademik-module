@@ -74,6 +74,7 @@ Route::middleware(['auth', 'check.expired', 'module:akademik'])->prefix('akd')->
 
     // --- KRS Admin ---
     Route::get('/krs/data', [KrsController::class, 'data'])->name('krs.data');
+    Route::get('krs/monitoring', [KrsController::class, 'monitoring'])->name('krs.monitoring');
     Route::resource('krs', KrsController::class)->except(['show'])->parameters(['krs' => 'krs']);
 
     // --- Nilai (Import) ---
@@ -169,6 +170,14 @@ Route::middleware(['auth', 'check.expired', 'module:akademik'])->prefix('akd')->
     Route::get('mahasiswa-draft', [MahasiswaDraftController::class, 'index'])->name('mahasiswa-draft.index');
     Route::get('mahasiswa-draft/{id}', [MahasiswaDraftController::class, 'show'])->name('mahasiswa-draft.show');
     Route::put('mahasiswa-draft/{id}', [MahasiswaDraftController::class, 'update'])->name('mahasiswa-draft.update');
+    Route::get('mahasiswa-draft/{id}/set-kurikulum', [MahasiswaDraftController::class, 'setKurikulumForm'])->name('mahasiswa-draft.set-kurikulum.form');
+    Route::put('mahasiswa-draft/{id}/set-kurikulum', [MahasiswaDraftController::class, 'setKurikulum'])->name('mahasiswa-draft.set-kurikulum');
+    Route::get('mahasiswa-draft/{id}/set-status', [MahasiswaDraftController::class, 'setStatusForm'])->name('mahasiswa-draft.set-status.form');
+    Route::put('mahasiswa-draft/{id}/set-status', [MahasiswaDraftController::class, 'setStatus'])->name('mahasiswa-draft.set-status');
+    Route::get('mahasiswa-draft/set-kurikulum-bulk', [MahasiswaDraftController::class, 'setKurikulumBulkForm'])->name('mahasiswa-draft.set-kurikulum-bulk.form');
+    Route::put('mahasiswa-draft/set-kurikulum-bulk', [MahasiswaDraftController::class, 'setKurikulumBulk'])->name('mahasiswa-draft.set-kurikulum-bulk');
+    Route::get('mahasiswa-draft/set-status-bulk', [MahasiswaDraftController::class, 'setStatusBulkForm'])->name('mahasiswa-draft.set-status-bulk.form');
+    Route::put('mahasiswa-draft/set-status-bulk', [MahasiswaDraftController::class, 'setStatusBulk'])->name('mahasiswa-draft.set-status-bulk');
     Route::post('mahasiswa-draft/sync', [MahasiswaDraftController::class, 'sync'])->name('mahasiswa-draft.sync');
     Route::post('mahasiswa-draft/submit', [MahasiswaDraftController::class, 'submit'])->name('mahasiswa-draft.submit');
 });
