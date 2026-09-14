@@ -14,6 +14,7 @@
         "Modules\\Akademik\\Providers\\AkademikServiceProvider"
     ],
     "permission_seeder": "Modules\\Akademik\\Database\\Seeders\\RolePermissionSeeder",
+    "data_seeder": "Modules\\Akademik\\Database\\Seeders\\DataSeeder",
     "migration": {
         "seeds": [
             "Modules\\Akademik\\Database\\Seeders\\DatabaseSeeder"

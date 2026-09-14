@@ -9,172 +9,173 @@
         $pendaftaran = $draft->snapshot_json['pendaftaran'] ?? [];
     @endphp
 
-    <ul class="nav nav-tabs mb-3" role="tablist">
-        <li class="nav-item" role="presentation">
-            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#draft-tab-akademik" type="button" role="tab" aria-selected="true">
-                <i class="ti ti-school me-1"></i> Akademik
-            </button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#draft-tab-biodata" type="button" role="tab" aria-selected="false">
-                <i class="ti ti-user me-1"></i> Biodata
-            </button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#draft-tab-pmb" type="button" role="tab" aria-selected="false">
-                <i class="ti ti-id-badge me-1"></i> PMB
-            </button>
-        </li>
-    </ul>
+    {{-- ── Section: Akademik (editable) ── --}}
+    <div class="mb-4">
+        <h4 class="section-title mb-3">
+            <i class="ti ti-school me-1"></i> Akademik
+        </h4>
+        <form action="{{ route('akd.mahasiswa-draft.update', $draft->draft_id) }}" method="POST" class="ajax-form" data-reload-page="true">
+            @csrf
+            @method('PUT')
 
-    <div class="tab-content">
-        {{-- ── Tab Akademik (editable) ── --}}
-        <div class="tab-pane fade show active" id="draft-tab-akademik" role="tabpanel">
-            <form action="{{ route('akd.mahasiswa-draft.update', $draft->draft_id) }}" method="POST" class="ajax-form" data-reload-page="true">
-                @csrf
-                @method('PUT')
-
-                <div class="row g-3">
-                    <div class="col-md-4">
-                        <x-ui.form-input name="nim" label="NIM" :value="$draft->nim" placeholder="NIM" />
-                    </div>
-                    <div class="col-md-8">
-                        <x-ui.form-input name="nama" label="Nama Lengkap" :value="$draft->nama" placeholder="Nama Lengkap" />
-                    </div>
-                    <div class="col-md-6">
-                        <x-ui.form-input name="email" type="email" label="Email" :value="$draft->email" help="Dipakai untuk akun login mahasiswa." />
-                    </div>
-                    <div class="col-md-6">
-                        <x-ui.form-select name="kurikulum_kode" label="Kurikulum" :selected="$draft->kurikulum_kode">
-                            <option value="">-- Belum ditentukan --</option>
-                            @foreach(($kurikulumOptions ?? collect()) as $kur)
-                                <option value="{{ $kur->kode_kurikulum }}" @selected($draft->kurikulum_kode === $kur->kode_kurikulum)>{{ $kur->kode_kurikulum }} — {{ $kur->nama }}</option>
-                            @endforeach
-                        </x-ui.form-select>
-                    </div>
-                    <div class="col-md-4">
-                        <x-ui.form-input label="No. Pendaftaran" :value="($pendaftaran['no_pendaftaran'] ?? '-')" readonly />
-                    </div>
-                    <div class="col-md-4">
-                        <x-ui.form-input label="Program Studi" :value="$draft->prodi?->name ?? '-'" readonly />
-                    </div>
-                    <div class="col-md-4">
-                        <x-ui.form-input label="Angkatan" :value="$draft->angkatan" readonly />
-                    </div>
-                    <div class="col-md-4">
-                        <x-ui.form-input label="Jenis Masuk" :value="ucfirst($draft->jenis_masuk ?? '-')" readonly />
-                    </div>
-                    <div class="col-md-4">
-                        <x-ui.form-input label="Sistem Kuliah" :value="ucfirst($draft->sistem_kuliah ?? '-')" readonly />
-                    </div>
-                    <div class="col-md-4">
-                        <x-ui.form-input label="Status" :value="ucfirst($draft->status_draft)" readonly />
-                    </div>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <x-ui.form-input name="nim" label="NIM" :value="$draft->nim" placeholder="NIM" />
                 </div>
-
-                <div class="mt-3">
-                    <x-ui.button type="submit" icon="ti ti-device-floppy" text="Simpan" />
+                <div class="col-md-8">
+                    <x-ui.form-input name="nama" label="Nama Lengkap" :value="$draft->nama" placeholder="Nama Lengkap" />
                 </div>
-            </form>
-        </div>
-
-        {{-- ── Tab Biodata (readonly dari snapshot PMB) ── --}}
-        <div class="tab-pane fade" id="draft-tab-biodata" role="tabpanel">
-            @php
-                $biodataSections = [
-                    'Data Pribadi' => [
-                        'NIK' => $kandidat['nik'] ?? null,
-                        'Tempat Lahir' => $kandidat['tempat_lahir'] ?? null,
-                        'Tanggal Lahir' => $kandidat['tanggal_lahir'] ?? null,
-                        'Jenis Kelamin' => $kandidat['jenis_kelamin'] ?? null,
-                        'Agama' => $kandidat['agama'] ?? null,
-                        'Kewarganegaraan' => $kandidat['kewarganegaraan'] ?? null,
-                        'Suku' => $kandidat['suku'] ?? null,
-                        'Alamat' => $kandidat['alamat_lengkap'] ?? $kandidat['alamat'] ?? null,
-                    ],
-                    'Ayah' => [
-                        'Nama' => $kandidat['nama_ayah'] ?? null,
-                        'NIK' => $kandidat['nik_ayah'] ?? null,
-                        'Pendidikan' => $kandidat['pendidikan_ayah'] ?? null,
-                        'Pekerjaan' => $kandidat['pekerjaan_ayah'] ?? null,
-                        'Penghasilan' => $kandidat['penghasilan_ayah'] ?? null,
-                    ],
-                    'Ibu' => [
-                        'Nama' => $kandidat['nama_ibu'] ?? null,
-                        'NIK' => $kandidat['nik_ibu'] ?? null,
-                        'Pendidikan' => $kandidat['pendidikan_ibu'] ?? null,
-                        'Pekerjaan' => $kandidat['pekerjaan_ibu'] ?? null,
-                        'Penghasilan' => $kandidat['penghasilan_ibu'] ?? null,
-                    ],
-                    'Wali' => [
-                        'Nama' => $kandidat['nama_wali'] ?? null,
-                        'NIK' => $kandidat['nik_wali'] ?? null,
-                        'Pendidikan' => $kandidat['pendidikan_wali'] ?? null,
-                        'Pekerjaan' => $kandidat['pekerjaan_wali'] ?? null,
-                        'Penghasilan' => $kandidat['penghasilan_wali'] ?? null,
-                    ],
-                ];
-            @endphp
-
-            @foreach($biodataSections as $sectionTitle => $fields)
-                <h4 class="subtitle">{{ $sectionTitle }}</h4>
-                <div class="datagrid mb-3">
-                    <div class="datagrid-item">
-                        @foreach($fields as $label => $value)
-                            <div class="datagrid-title">{{ $label }}</div>
-                            <div class="datagrid-content">{{ $value ?? '-' }}</div>
+                <div class="col-md-6">
+                    <x-ui.form-input name="email" type="email" label="Email" :value="$draft->email" help="Dipakai untuk akun login mahasiswa." />
+                </div>
+                <div class="col-md-6">
+                    <x-ui.form-select name="kurikulum_kode" label="Kurikulum" :selected="$draft->kurikulum_kode">
+                        <option value="">-- Belum ditentukan --</option>
+                        @foreach(($kurikulumOptions ?? collect()) as $kur)
+                            <option value="{{ $kur->kode_kurikulum }}" @selected($draft->kurikulum_kode === $kur->kode_kurikulum)>{{ $kur->kode_kurikulum }} — {{ $kur->nama }}</option>
                         @endforeach
-                    </div>
+                    </x-ui.form-select>
                 </div>
-            @endforeach
-        </div>
+                <div class="col-md-4">
+                    <x-ui.form-input label="No. Pendaftaran" :value="($pendaftaran['no_pendaftaran'] ?? '-')" readonly />
+                </div>
+                <div class="col-md-4">
+                    <x-ui.form-input label="Program Studi" :value="$draft->prodi?->name ?? '-'" readonly />
+                </div>
+                <div class="col-md-4">
+                    <x-ui.form-input label="Angkatan" :value="$draft->angkatan" readonly />
+                </div>
+                <div class="col-md-4">
+                    <x-ui.form-input label="Jenis Masuk" :value="ucfirst($draft->jenis_masuk ?? '-')" readonly />
+                </div>
+                <div class="col-md-4">
+                    <x-ui.form-input label="Sistem Kuliah" :value="ucfirst($draft->sistem_kuliah ?? '-')" readonly />
+                </div>
+                <div class="col-md-4">
+                    <x-ui.form-input label="Status" :value="ucfirst($draft->status_draft)" readonly />
+                </div>
+            </div>
 
-        {{-- ── Tab PMB (readonly metadata pendaftaran) ── --}}
-        <div class="tab-pane fade" id="draft-tab-pmb" role="tabpanel">
+            <div class="mt-3">
+                <x-ui.button type="submit" icon="ti ti-device-floppy" text="Simpan" />
+            </div>
+        </form>
+    </div>
+
+    <hr class="my-4">
+
+    {{-- ── Section: Biodata (readonly dari snapshot PMB) ── --}}
+    <div class="mb-4">
+        <h4 class="section-title mb-3">
+            <i class="ti ti-user me-1"></i> Biodata
+        </h4>
+        @php
+            $biodataSections = [
+                'Data Pribadi' => [
+                    'NIK' => $kandidat['nik'] ?? null,
+                    'Tempat Lahir' => $kandidat['tempat_lahir'] ?? null,
+                    'Tanggal Lahir' => $kandidat['tanggal_lahir'] ?? null,
+                    'Jenis Kelamin' => $kandidat['jenis_kelamin'] ?? null,
+                    'Agama' => $kandidat['agama'] ?? null,
+                    'Kewarganegaraan' => $kandidat['kewarganegaraan'] ?? null,
+                    'Suku' => $kandidat['suku'] ?? null,
+                    'Alamat' => $kandidat['alamat_lengkap'] ?? $kandidat['alamat'] ?? null,
+                ],
+                'Ayah' => [
+                    'Nama' => $kandidat['nama_ayah'] ?? null,
+                    'NIK' => $kandidat['nik_ayah'] ?? null,
+                    'Pendidikan' => $kandidat['pendidikan_ayah'] ?? null,
+                    'Pekerjaan' => $kandidat['pekerjaan_ayah'] ?? null,
+                    'Penghasilan' => $kandidat['penghasilan_ayah'] ?? null,
+                ],
+                'Ibu' => [
+                    'Nama' => $kandidat['nama_ibu'] ?? null,
+                    'NIK' => $kandidat['nik_ibu'] ?? null,
+                    'Pendidikan' => $kandidat['pendidikan_ibu'] ?? null,
+                    'Pekerjaan' => $kandidat['pekerjaan_ibu'] ?? null,
+                    'Penghasilan' => $kandidat['penghasilan_ibu'] ?? null,
+                ],
+                'Wali' => [
+                    'Nama' => $kandidat['nama_wali'] ?? null,
+                    'NIK' => $kandidat['nik_wali'] ?? null,
+                    'Pendidikan' => $kandidat['pendidikan_wali'] ?? null,
+                    'Pekerjaan' => $kandidat['pekerjaan_wali'] ?? null,
+                    'Penghasilan' => $kandidat['penghasilan_wali'] ?? null,
+                ],
+            ];
+        @endphp
+
+        @foreach($biodataSections as $sectionTitle => $fields)
+            <h5 class="text-secondary mb-2">{{ $sectionTitle }}</h5>
             <div class="datagrid mb-3">
-                <div class="datagrid-item">
-                    <div class="datagrid-title">No. Pendaftaran</div>
-                    <div class="datagrid-content">{{ $pendaftaran['no_pendaftaran'] ?? '-' }}</div>
-
-                    <div class="datagrid-title">PMB ID</div>
-                    <div class="datagrid-content">{{ $draft->pmb_pendaftar_id ?? '-' }}</div>
-
-                    <div class="datagrid-title">Jalur</div>
-                    <div class="datagrid-content">{{ $pendaftaran['jalur']['nama_jalur'] ?? '-' }}</div>
-
-                    <div class="datagrid-title">Sistem Kuliah (PMB)</div>
-                    <div class="datagrid-content">{{ $pendaftaran['jalur']['sistem_kuliah'] ?? '-' }}</div>
-
-                    <div class="datagrid-title">Status Terkini</div>
-                    <div class="datagrid-content">{{ $pendaftaran['status_terkini'] ?? '-' }}</div>
-
-                    <div class="datagrid-title">Nilai Seleksi</div>
-                    <div class="datagrid-content">
-                        @forelse(($pendaftaran['nilai_seleksi'] ?? []) as $ns)
-                            <span class="badge bg-blue-lt me-1">{{ $ns['jenis'] }}: {{ $ns['nilai'] }}</span>
-                        @empty
-                            -
-                        @endforelse
+                @foreach($fields as $label => $value)
+                    <div class="datagrid-item">
+                        <div class="datagrid-title">{{ $label }}</div>
+                        <div class="datagrid-content">{{ $value ?? '-' }}</div>
                     </div>
+                @endforeach
+            </div>
+        @endforeach
+    </div>
 
-                    <div class="datagrid-title">Wawancara</div>
-                    <div class="datagrid-content">
-                        @if(isset($pendaftaran['wawancara']))
-                            Nilai {{ $pendaftaran['wawancara']['nilai'] ?? '-' }} — {{ $pendaftaran['wawancara']['hasil'] ?? '-' }}
-                        @else
-                            -
-                        @endif
-                    </div>
+    <hr class="my-4">
 
-                    <div class="datagrid-title">Sync Draft</div>
-                    <div class="datagrid-content">{{ $draft->created_at?->format('d M Y H:i') ?? '-' }}</div>
+    {{-- ── Section: PMB (readonly metadata pendaftaran) ── --}}
+    <div class="mb-3">
+        <h4 class="section-title mb-3">
+            <i class="ti ti-id-badge me-1"></i> PMB
+        </h4>
+        <div class="datagrid mb-3">
+            <div class="datagrid-item">
+                <div class="datagrid-title">No. Pendaftaran</div>
+                <div class="datagrid-content">{{ $pendaftaran['no_pendaftaran'] ?? '-' }}</div>
 
-                    @if($draft->submitted_at)
-                        <div class="datagrid-title">Submitted</div>
-                        <div class="datagrid-content">{{ $draft->submitted_at?->format('d M Y H:i') }}</div>
+                <div class="datagrid-title">PMB ID</div>
+                <div class="datagrid-content">{{ $draft->pmb_pendaftar_id ?? '-' }}</div>
+
+                <div class="datagrid-title">Jalur</div>
+                <div class="datagrid-content">{{ $pendaftaran['jalur']['nama_jalur'] ?? '-' }}</div>
+
+                <div class="datagrid-title">Sistem Kuliah (PMB)</div>
+                <div class="datagrid-content">{{ $pendaftaran['jalur']['sistem_kuliah'] ?? '-' }}</div>
+
+                <div class="datagrid-title">Status Terkini</div>
+                <div class="datagrid-content">{{ $pendaftaran['status_terkini'] ?? '-' }}</div>
+
+                <div class="datagrid-title">Nilai Seleksi</div>
+                <div class="datagrid-content">
+                    @forelse(($pendaftaran['nilai_seleksi'] ?? []) as $ns)
+                        <span class="badge bg-blue-lt me-1">{{ $ns['jenis'] }}: {{ $ns['nilai'] }}</span>
+                    @empty
+                        -
+                    @endforelse
+                </div>
+
+                <div class="datagrid-title">Wawancara</div>
+                <div class="datagrid-content">
+                    @if(isset($pendaftaran['wawancara']))
+                        Nilai {{ $pendaftaran['wawancara']['nilai'] ?? '-' }} — {{ $pendaftaran['wawancara']['hasil'] ?? '-' }}
+                    @else
+                        -
                     @endif
                 </div>
+
+                <div class="datagrid-title">Sync Draft</div>
+                <div class="datagrid-content">{{ $draft->created_at?->format('d M Y H:i') ?? '-' }}</div>
+
+                @if($draft->submitted_at)
+                    <div class="datagrid-title">Submitted</div>
+                    <div class="datagrid-content">{{ $draft->submitted_at?->format('d M Y H:i') }}</div>
+                @endif
             </div>
         </div>
     </div>
+
+    <style>
+        .section-title {
+            font-weight: 600;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--tblr-border-color);
+        }
+    </style>
 </x-ui.form-modal>

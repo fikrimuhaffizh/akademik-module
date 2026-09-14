@@ -7,7 +7,6 @@ use App\Traits\Blameable;
 use App\Traits\HashidBinding;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Modules\Survei\Models\Survei\Pengisian;
 
 class EdomStatus extends Model
 {
@@ -40,10 +39,5 @@ class EdomStatus extends Model
     public function kelas()
     {
         return $this->belongsTo(KelasKuliah::class, 'kelas_id', 'kelas_id');
-    }
-
-    public function surveiPengisian()
-    {
-        return $this->belongsTo(Pengisian::class, 'survei_pengisian_id', 'pengisian_id');
     }
 }

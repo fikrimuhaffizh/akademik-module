@@ -206,6 +206,14 @@ class EdomService
     }
 
     /**
+     * Slug survei EDOM dari id-nya (dipakai controller untuk redirect ke modul Survei).
+     */
+    public function slugSurvei(int $surveiId): ?string
+    {
+        return Survei::whereKey($surveiId)->value('slug');
+    }
+
+    /**
      * Survei EDOM bersama (shared) untuk semua kelas — diidentifikasi via slug tetap.
      */
     public function getEdomSurvei(): ?Survei

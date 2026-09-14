@@ -7,8 +7,6 @@ use Illuminate\Http\Request;
 use Modules\Akademik\Services\EdomService;
 use Modules\Akademik\Services\KelasKuliahService;
 use Modules\Akademik\Services\MahasiswaService;
-use Modules\Survei\Models\Survei\Survei;
-use Modules\Survei\Services\Survei\SurveiService;
 use Yajra\DataTables\DataTables;
 
 class EdomController extends Controller
@@ -16,7 +14,6 @@ class EdomController extends Controller
     public function __construct(
         protected EdomService $edomService,
         protected KelasKuliahService $kelasKuliahService,
-        protected SurveiService $surveiService,
         protected MahasiswaService $mahasiswaService,
     )
     {
@@ -160,15 +157,17 @@ class EdomController extends Controller
             abort(404, 'Konfigurasi EDOM untuk kelas ini belum tersedia.');
         }
 
-        // Dapatkan slug survei
-        $survei = $this->surveiService->findById($edomKelas->survei_id);
-        if (!$survei) {
+        // Dapatkan slug survei — lewat EdomService, bukan service modul Survei:
+        // kopling lintas modul Akademik → Survei dibatasi di satu file itu.
+        $slug = $this->edomService->slugSurvei((int) $edomKelas->survei_id);
+
+        if (! $slug) {
             abort(404, 'Survei EDOM tidak ditemukan.');
         }
 
         // Redirect ke halaman pengisian survei
         return redirect()->route('srv.public.start', [
-            'slug' => $survei->slug,
+            'slug' => $slug,
             'edom_status_id' => $edomStatus->edom_status_id,
         ]);
     }

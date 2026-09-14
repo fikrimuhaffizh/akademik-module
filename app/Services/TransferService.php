@@ -6,7 +6,6 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Modules\Akademik\Models\Transfer;
-use RuntimeException;
 
 class TransferService
 {
@@ -83,7 +82,7 @@ class TransferService
             $entity = $this->findById($id);
 
             if ($entity->status !== 'diajukan') {
-                throw new RuntimeException('Hanya transfer berstatus diajukan yang dapat disetujui.');
+                throw new \RuntimeException('Hanya transfer berstatus diajukan yang dapat disetujui.');
             }
 
             $entity->update([
@@ -105,7 +104,7 @@ class TransferService
             $entity = $this->findById($id);
 
             if ($entity->status !== 'diajukan') {
-                throw new RuntimeException('Hanya transfer berstatus diajukan yang dapat ditolak.');
+                throw new \RuntimeException('Hanya transfer berstatus diajukan yang dapat ditolak.');
             }
 
             $entity->update([

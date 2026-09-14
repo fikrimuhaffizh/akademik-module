@@ -51,7 +51,6 @@ class AkademikServiceProvider extends BaseModuleServiceProvider
                     ['title' => 'Cekal Mahasiswa',    'route' => 'akd.cekal.index',              'active_routes' => ['akd.cekal.*'],              'icon' => 'shield-check',         'permission' => 'akd.cekal.view'],
                     ['title' => 'Riwayat Status',     'route' => 'akd.riwayat-status.index',     'active_routes' => ['akd.riwayat-status.*'],     'icon' => 'history',               'permission' => 'akd.riwayat-status.view'],
                     ['title' => 'Import Mahasiswa',   'route' => 'akd.mahasiswa.import.index',   'active_routes' => ['akd.mahasiswa.import.*'],   'icon' => 'database-import',       'permission' => 'akd.mahasiswa.view'],
-                    ['title' => 'Mahasiswa Draft (PMB)', 'route' => 'akd.mahasiswa-draft.index', 'active_routes' => ['akd.mahasiswa-draft.*'], 'icon' => 'database-export', 'permission' => 'akd.mahasiswa.view'],
                 ],
             ],
 

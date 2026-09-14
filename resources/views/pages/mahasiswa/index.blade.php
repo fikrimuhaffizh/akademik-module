@@ -11,7 +11,7 @@
             <a href="{{ route('akd.mahasiswa-draft.index') }}" class="btn btn-success">
                 <i class="ti ti-arrows-exchange me-1"></i> Sync Akademik ↔ PMB
             </a>
-            <x-ui.button type="create" class="ajax-modal-btn" data-url="{{ route('akd.mahasiswa.create') }}" data-modal-title="Form Mahasiswa" />
+
             <x-ui.dropdown>
                 <x-ui.dropdown-item
                     icon="ti ti-file-import"

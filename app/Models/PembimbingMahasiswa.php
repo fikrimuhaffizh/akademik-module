@@ -6,6 +6,7 @@ use App\Traits\BelongsToTenant;
 use App\Traits\Blameable;
 use App\Traits\HashidBinding;
 use Illuminate\Database\Eloquent\Model;
+use Modules\Referensi\Models\SysRef;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class PembimbingMahasiswa extends Model
@@ -26,6 +27,6 @@ class PembimbingMahasiswa extends Model
 
     public function jenisPembimbing()
     {
-        return $this->belongsTo(\Modules\Referensi\Models\SysRef::class, 'jenis_pembimbing', 'ref_id');
+        return $this->belongsTo(SysRef::class, 'jenis_pembimbing', 'ref_id');
     }
 }

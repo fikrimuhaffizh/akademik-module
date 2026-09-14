@@ -6,6 +6,7 @@ use App\Traits\BelongsToTenant;
 use App\Traits\Blameable;
 use App\Traits\HashidBinding;
 use Illuminate\Database\Eloquent\Model;
+use Modules\HrCore\Models\Pegawai;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class PembebananDosen extends Model
@@ -28,6 +29,6 @@ class PembebananDosen extends Model
 
     public function pegawai()
     {
-        return $this->belongsTo(\Modules\HrCore\Models\Pegawai::class, 'pegawai_id', 'pegawai_id');
+        return $this->belongsTo(Pegawai::class, 'pegawai_id', 'pegawai_id');
     }
 }

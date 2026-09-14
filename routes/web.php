@@ -116,7 +116,7 @@ Route::middleware(['auth', 'check.expired', 'module:akademik'])->prefix('akd')->
     Route::get('mahasiswa/export', [MahasiswaController::class, 'export'])->name('mahasiswa.export');
 
     // Mahasiswa CRUD (show excluded — handled by detail route)
-    Route::resource('mahasiswa', MahasiswaController::class)->except(['show']);
+    Route::resource('mahasiswa', MahasiswaController::class)->except(['show', 'create', 'store']);
 
     // Mahasiswa Detail (tab-based — MUST be after resource)
     Route::get('mahasiswa/{id}/{tab?}', [MahasiswaDetailController::class, 'show'])
@@ -130,7 +130,7 @@ Route::middleware(['auth', 'check.expired', 'module:akademik'])->prefix('akd')->
     Route::resource('riwayat-status', RiwayatStatusController::class)->except(['show']);
 
     // Nilai Mahasiswa (read-only)
-    Route::get('nilai-mahasiswa', [\Modules\Akademik\Http\Controllers\NilaiController::class, 'index'])->name('nilai-mahasiswa.index');
+    Route::get('nilai-mahasiswa', [NilaiController::class, 'index'])->name('nilai-mahasiswa.index');
 
     // Cekal
     Route::resource('cekal', CekalController::class)->except(['show']);
@@ -144,12 +144,12 @@ Route::middleware(['auth', 'check.expired', 'module:akademik'])->prefix('akd')->
     Route::post('transfer/{id}/reject', [TransferController::class, 'reject'])->name('transfer.reject');
 
     // KRS Mahasiswa (sisi mahasiswa)
-    Route::get('krs-mahasiswa', [\Modules\Akademik\Http\Controllers\KrsController::class, 'mahasiswaIndex'])->name('krs-mahasiswa.index');
-    Route::post('krs/pilih', [\Modules\Akademik\Http\Controllers\KrsController::class, 'pilih'])->name('krs.pilih');
-    Route::get('krs/form/{mahasiswaId}', [\Modules\Akademik\Http\Controllers\KrsController::class, 'form'])->name('krs.form');
-    Route::get('krs/datatable', [\Modules\Akademik\Http\Controllers\KrsController::class, 'datatable'])->name('krs.datatable');
-    Route::post('krs/toggle', [\Modules\Akademik\Http\Controllers\KrsController::class, 'toggle'])->name('krs.toggle');
-    Route::post('krs/ajukan', [\Modules\Akademik\Http\Controllers\KrsController::class, 'ajukan'])->name('krs.ajukan');
+    Route::get('krs-mahasiswa', [KrsController::class, 'mahasiswaIndex'])->name('krs-mahasiswa.index');
+    Route::post('krs/pilih', [KrsController::class, 'pilih'])->name('krs.pilih');
+    Route::get('krs/form/{mahasiswaId}', [KrsController::class, 'form'])->name('krs.form');
+    Route::get('krs/datatable', [KrsController::class, 'datatable'])->name('krs.datatable');
+    Route::post('krs/toggle', [KrsController::class, 'toggle'])->name('krs.toggle');
+    Route::post('krs/ajukan', [KrsController::class, 'ajukan'])->name('krs.ajukan');
 
     // EDOM Mahasiswa (sisi mahasiswa)
     Route::get('edom-mahasiswa', [EdomMahasiswaController::class, 'index'])->name('edom-mahasiswa.index');
@@ -168,16 +168,19 @@ Route::middleware(['auth', 'check.expired', 'module:akademik'])->prefix('akd')->
     // --- Mahasiswa Draft (PMB → Akademik Sync) ---
     Route::get('mahasiswa-draft/data', [MahasiswaDraftController::class, 'data'])->name('mahasiswa-draft.data');
     Route::get('mahasiswa-draft', [MahasiswaDraftController::class, 'index'])->name('mahasiswa-draft.index');
-    Route::get('mahasiswa-draft/{id}', [MahasiswaDraftController::class, 'show'])->name('mahasiswa-draft.show');
-    Route::put('mahasiswa-draft/{id}', [MahasiswaDraftController::class, 'update'])->name('mahasiswa-draft.update');
-    Route::get('mahasiswa-draft/{id}/set-kurikulum', [MahasiswaDraftController::class, 'setKurikulumForm'])->name('mahasiswa-draft.set-kurikulum.form');
-    Route::put('mahasiswa-draft/{id}/set-kurikulum', [MahasiswaDraftController::class, 'setKurikulum'])->name('mahasiswa-draft.set-kurikulum');
-    Route::get('mahasiswa-draft/{id}/set-status', [MahasiswaDraftController::class, 'setStatusForm'])->name('mahasiswa-draft.set-status.form');
-    Route::put('mahasiswa-draft/{id}/set-status', [MahasiswaDraftController::class, 'setStatus'])->name('mahasiswa-draft.set-status');
+    Route::post('mahasiswa-draft/sync', [MahasiswaDraftController::class, 'sync'])->name('mahasiswa-draft.sync');
+    Route::post('mahasiswa-draft/submit', [MahasiswaDraftController::class, 'submit'])->name('mahasiswa-draft.submit');
+    Route::post('mahasiswa-draft/bulk-destroy', [MahasiswaDraftController::class, 'bulkDestroy'])->name('mahasiswa-draft.bulk-destroy');
     Route::get('mahasiswa-draft/set-kurikulum-bulk', [MahasiswaDraftController::class, 'setKurikulumBulkForm'])->name('mahasiswa-draft.set-kurikulum-bulk.form');
     Route::put('mahasiswa-draft/set-kurikulum-bulk', [MahasiswaDraftController::class, 'setKurikulumBulk'])->name('mahasiswa-draft.set-kurikulum-bulk');
     Route::get('mahasiswa-draft/set-status-bulk', [MahasiswaDraftController::class, 'setStatusBulkForm'])->name('mahasiswa-draft.set-status-bulk.form');
     Route::put('mahasiswa-draft/set-status-bulk', [MahasiswaDraftController::class, 'setStatusBulk'])->name('mahasiswa-draft.set-status-bulk');
-    Route::post('mahasiswa-draft/sync', [MahasiswaDraftController::class, 'sync'])->name('mahasiswa-draft.sync');
-    Route::post('mahasiswa-draft/submit', [MahasiswaDraftController::class, 'submit'])->name('mahasiswa-draft.submit');
+    Route::get('mahasiswa-draft/{id}/set-kurikulum', [MahasiswaDraftController::class, 'setKurikulumForm'])->name('mahasiswa-draft.set-kurikulum.form');
+    Route::put('mahasiswa-draft/{id}/set-kurikulum', [MahasiswaDraftController::class, 'setKurikulum'])->name('mahasiswa-draft.set-kurikulum');
+    Route::get('mahasiswa-draft/{id}/set-status', [MahasiswaDraftController::class, 'setStatusForm'])->name('mahasiswa-draft.set-status.form');
+    Route::put('mahasiswa-draft/{id}/set-status', [MahasiswaDraftController::class, 'setStatus'])->name('mahasiswa-draft.set-status');
+    Route::post('mahasiswa-draft/kurikulum-options', [MahasiswaDraftController::class, 'kurikulumOptions'])->name('mahasiswa-draft.kurikulum-options');
+    Route::get('mahasiswa-draft/{id}', [MahasiswaDraftController::class, 'show'])->name('mahasiswa-draft.show');
+    Route::put('mahasiswa-draft/{id}', [MahasiswaDraftController::class, 'update'])->name('mahasiswa-draft.update');
+    Route::delete('mahasiswa-draft/{id}', [MahasiswaDraftController::class, 'destroy'])->name('mahasiswa-draft.destroy');
 });

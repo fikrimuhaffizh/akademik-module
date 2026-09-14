@@ -1,9 +1,11 @@
 @extends('layouts.' . active_theme() . '.app')
 
 @section('content')
-    <form id="form-mahasiswa" action="{{ isset($row) ? route('akd.mahasiswa.update', encryptId($row->mahasiswa_id)) : route('akd.mahasiswa.store') }}" method="POST">
+    {{-- Form ini hanya untuk UBAH mahasiswa: penambahan manual sudah dihapus.
+         Mahasiswa hanya lahir dari alur draft PMB atau impor massal. --}}
+    <form id="form-mahasiswa" action="{{ route('akd.mahasiswa.update', encryptId($row->mahasiswa_id)) }}" method="POST">
         @csrf
-        @if(isset($row)) @method('PUT') @endif
+        @method('PUT')
 
         <div class="row g-3">
             <div class="col-md-6">

@@ -2,20 +2,20 @@
 
 namespace Modules\Akademik\Services;
 
-use Modules\Akademik\Models\MahasiswaDraft;
-use Modules\Akademik\Models\Mahasiswa;
-use Modules\Akademik\Models\Biodata;
-use Modules\Akademik\Models\RiwayatStatus;
-use Modules\Akademik\Models\StatusSemester;
-use Modules\Akademik\Services\MahasiswaService;
-use Modules\Referensi\Services\SysRefService;
-use Modules\Account\Models\Role;
-use Modules\Account\Models\User;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Collection as SupportCollection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Modules\Account\Models\Role;
+use Modules\Account\Models\User;
+use Modules\Akademik\Models\Biodata;
+use Modules\Akademik\Models\Mahasiswa;
+use Modules\Akademik\Models\MahasiswaDraft;
+use Modules\Akademik\Models\RiwayatStatus;
+use Modules\Akademik\Models\StatusSemester;
+use Modules\Akademik\Services\References\PmbReference;
+use Modules\Kurikulum\Services\SettingProdiService;
+use Modules\Referensi\Services\SysRefService;
 
 class MahasiswaDraftService
 {
@@ -23,6 +23,7 @@ class MahasiswaDraftService
 
     public function __construct(
         protected SysRefService $sysRefService,
+        protected PmbReference $pmbReference,
     ) {}
 
     /**
@@ -69,7 +70,7 @@ class MahasiswaDraftService
         if (! empty($search)) {
             $query->where(function ($q) use ($search) {
                 $q->where('nama', 'like', "%{$search}%")
-                  ->orWhere('nim', 'like', "%{$search}%");
+                    ->orWhere('nim', 'like', "%{$search}%");
             });
         }
 
@@ -109,7 +110,7 @@ class MahasiswaDraftService
     public function setKurikulumBulk(array $draftIds, string $mode, ?string $kurikulumKode = null): array
     {
         $updated = 0;
-        $errors  = [];
+        $errors = [];
 
         foreach ($draftIds as $id) {
             try {
@@ -124,7 +125,7 @@ class MahasiswaDraftService
                     }
 
                     // Auto: resolve via SettingProdi (prodi + angkatan).
-                    $kode = app(\Modules\Kurikulum\Services\SettingProdiService::class)
+                    $kode = app(SettingProdiService::class)
                         ->getKurikulumForAngkatan((int) $draft->prodi_id, (int) $draft->angkatan)
                         ?->kurikulum?->kode_kurikulum;
 
@@ -139,7 +140,7 @@ class MahasiswaDraftService
                 });
             } catch (\Throwable $e) {
                 report($e);
-                $errors[] = "Draft #{$id}: " . $e->getMessage();
+                $errors[] = "Draft #{$id}: ".$e->getMessage();
             }
         }
 
@@ -147,6 +148,7 @@ class MahasiswaDraftService
 
         return ['updated' => $updated, 'errors' => $errors];
     }
+
     /**
      * Set status akhir draft (draft | submitted | batal).
      * Dipakai aksi "Set Status Akhir" di datatable draft.
@@ -157,7 +159,7 @@ class MahasiswaDraftService
             $draft = MahasiswaDraft::findOrFail($id);
             $draft->update(['status_draft' => $status]);
 
-            if ($status === 'submitted') {
+            if (in_array($status, ['terima', 'submitted'])) {
                 $draft->update(['submitted_at' => now()]);
             }
 
@@ -166,54 +168,67 @@ class MahasiswaDraftService
             return $draft;
         });
     }
+
     public function update(int $id, array $data): MahasiswaDraft
     {
         return DB::transaction(function () use ($id, $data) {
             $draft = MahasiswaDraft::findOrFail($id);
             $draft->update($data);
             logActivity('akademik', sprintf('Memperbarui draft mahasiswa: %s', $draft->nama), $draft);
+
             return $draft;
         });
     }
 
     /**
-     * Sync pendaftar baru dari PMB ke draft table.
-     * Idempotent — hanya insert yang belum ada di draft.
-     * Satu server = langsung in-process; beda server = HTTP.
+     * Hapus draft mahasiswa (soft delete).
      */
-    public function syncFromPmb(?int $periodeId = null): array
+    public function delete(int $draftId): void
     {
-        if (use_local('pmb', \Modules\Pmb\Services\PendaftaranService::class)) {
-            $pendaftarans = app(\Modules\Pmb\Services\PendaftaranService::class)
-                ->getMahasiswaBaru(array_filter(['periode_id' => $periodeId]));
-
-            return $this->importPendaftarans($pendaftarans);
-        }
-
-        $baseUrl = config('akademik.pmb_base_url');
-        $token = config('akademik.pmb_token');
-
-        if (empty($baseUrl) || empty($token)) {
-            return ['synced' => 0, 'skipped' => 0, 'errors' => ['PMBAPI base_url or token not configured']];
-        }
-
-        try {
-            $json = service_api('pmb', 'GET', '/api/v1/pmb/mahasiswa-baru', array_filter([
-                'periode_id' => $periodeId,
-            ]), ['base_url' => $baseUrl, 'token' => $token]);
-        } catch (\Illuminate\Http\Client\RequestException $e) {
-            $status = $e->response?->status() ?? 'unknown';
-
-            return ['synced' => 0, 'skipped' => 0, 'errors' => ['PMBAPI returned status '.$status]];
-        } catch (\Throwable $e) {
-            return ['synced' => 0, 'skipped' => 0, 'errors' => [$e->getMessage()]];
-        }
-
-        return $this->importPendaftarans($json['data'] ?? []);
+        $draft = MahasiswaDraft::findOrFail($draftId);
+        $draft->delete();
+        logActivity('akademik', sprintf('Menghapus draft mahasiswa: %s', $draft->nama), $draft);
     }
 
     /**
-     * Import baris mahasiswa-baru PMB ke draft (dipakai jalur HTTP dan in-process).
+     * Hapus beberapa draft mahasiswa sekaligus (soft delete).
+     */
+    public function bulkDelete(array $ids): array
+    {
+        $deleted = 0;
+
+        foreach ($ids as $id) {
+            try {
+                $draft = MahasiswaDraft::findOrFail($id);
+                $draft->delete();
+                $deleted++;
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
+
+        logActivity('akademik', sprintf('Bulk hapus draft mahasiswa: %d dihapus', $deleted));
+
+        return ['deleted' => $deleted];
+    }
+
+    /**
+     * Sync pendaftar baru dari PMB ke draft table (via PmbReference, HTTP).
+     * Idempotent — hanya insert yang belum ada di draft.
+     */
+    public function syncFromPmb(?int $periodeId = null): array
+    {
+        $kandidat = $this->pmbReference->kandidatFinal($periodeId);
+
+        if ($kandidat === null) {
+            return ['synced' => 0, 'skipped' => 0, 'errors' => ['PMB API tidak dapat dihubungi / belum dikonfigurasi. Lihat log.']];
+        }
+
+        return $this->importPendaftarans($kandidat);
+    }
+
+    /**
+     * Import baris mahasiswa-baru PMB ke draft (hasil PmbReference — HTTP).
      */
     private function importPendaftarans(array $pendaftarans): array
     {
@@ -226,6 +241,7 @@ class MahasiswaDraftService
                 $pmbId = $pendaftaran['pendaftaran_id'] ?? $pendaftaran['pmb_pendaftar_id'] ?? null;
                 if (! $pmbId) {
                     $errors[] = 'Missing pmb_pendaftar_id in record';
+
                     continue;
                 }
 
@@ -238,6 +254,7 @@ class MahasiswaDraftService
 
                 if ($exists) {
                     $skipped++;
+
                     continue;
                 }
 
@@ -261,11 +278,10 @@ class MahasiswaDraftService
                     continue;
                 }
 
-
                 // Auto-resolve kurikulum via SettingProdi (prodi + angkatan).
                 $kurikulumKode = null;
                 try {
-                    $kurikulumKode = app(\Modules\Kurikulum\Services\SettingProdiService::class)
+                    $kurikulumKode = app(SettingProdiService::class)
                         ->getKurikulumForAngkatan((int) $prodiId, (int) $angkatan)
                         ?->kurikulum?->kode_kurikulum;
                 } catch (\Throwable $e) {
@@ -365,69 +381,67 @@ class MahasiswaDraftService
                     // bila langkah berikut gagal, hapus user agar tidak yatim.
                     try {
 
-                    // 2. Create Mahasiswa via pintu tunggal (metadata: no_pendaftaran + tagihan DU).
-                    $mahasiswaId = app(MahasiswaService::class)->createFromSyncPayload([
-                        'nim' => $nim,
-                        'user_id' => $user->id,
-                        'nama' => $draft->nama,
-                        'email' => $email,
-                        'no_hp' => $draft->no_hp,
-                        'prodi_id' => $draft->prodi_id,
-                        'angkatan' => $draft->angkatan,
-                        'kurikulum_kode' => $draft->kurikulum_kode,
-                        'jenis_masuk' => $draft->jenis_masuk,
-                        'sistem_kuliah' => $draft->sistem_kuliah,
-                        'pmb_pendaftar_id' => $draft->pmb_pendaftar_id,
-                        'no_pendaftaran' => $pendaftaranSnap['no_pendaftaran'] ?? null,
-                        'tagihan_du' => [
-                            'tagihan_id' => $pendaftaranSnap['tagihan_daftar_ulang_id'] ?? null,
-                            'lunas' => true,
-                        ],
-                    ]);
-                    $mahasiswa = Mahasiswa::findOrFail($mahasiswaId);
+                        // 2. Create Mahasiswa via pintu tunggal (metadata: no_pendaftaran + tagihan DU).
+                        $mahasiswaId = app(MahasiswaService::class)->createFromSyncPayload([
+                            'nim' => $nim,
+                            'user_id' => $user->id,
+                            'nama' => $draft->nama,
+                            'email' => $email,
+                            'no_hp' => $draft->no_hp,
+                            'prodi_id' => $draft->prodi_id,
+                            'angkatan' => $draft->angkatan,
+                            'kurikulum_kode' => $draft->kurikulum_kode,
+                            'jenis_masuk' => $draft->jenis_masuk,
+                            'sistem_kuliah' => $draft->sistem_kuliah,
+                            'pmb_pendaftar_id' => $draft->pmb_pendaftar_id,
+                            'no_pendaftaran' => $pendaftaranSnap['no_pendaftaran'] ?? null,
+                            'tagihan_du' => [
+                                'tagihan_id' => $pendaftaranSnap['tagihan_daftar_ulang_id'] ?? null,
+                                'lunas' => true,
+                            ],
+                        ]);
+                        $mahasiswa = Mahasiswa::findOrFail($mahasiswaId);
 
-                    // 3. Create Biodata penuh dari snapshot PMB.
-                    Biodata::updateOrCreate(
-                        ['mahasiswa_id' => $mahasiswa->mahasiswa_id],
-                        [
-                            'tenant_id' => $draft->tenant_id,
-                            'nik' => $kandidat['nik'] ?? null,
-                            'tempat_lahir' => $kandidat['tempat_lahir'] ?? null,
-                            'tgl_lahir' => $kandidat['tanggal_lahir'] ?? null,
-                            'jenis_kelamin' => $kandidat['jenis_kelamin'] ?? null,
-                            'agama' => $kandidat['agama'] ?? null,
-                            'kewarganegaraan' => $kandidat['kewarganegaraan'] ?? null,
-                            'suku' => $kandidat['suku'] ?? null,
-                            'alamat' => $kandidat['alamat_lengkap'] ?? $kandidat['alamat'] ?? null,
-                            'provinsi_kode' => $kandidat['provinsi_kode'] ?? null,
-                            'kabupaten_kode' => $kandidat['kabupaten_kode'] ?? null,
-                            'kecamatan_kode' => $kandidat['kecamatan_kode'] ?? null,
-                            'kelurahan_kode' => $kandidat['kelurahan_kode'] ?? null,
-                            'kode_pos' => $kandidat['kode_pos'] ?? null,
-                            'nama_ayah' => $kandidat['nama_ayah'] ?? null,
-                            'nik_ayah' => $kandidat['nik_ayah'] ?? null,
-                            'tgl_lahir_ayah' => $kandidat['tgl_lahir_ayah'] ?? null,
-                            'pendidikan_ayah' => $kandidat['pendidikan_ayah'] ?? null,
-                            'pekerjaan_ayah' => $kandidat['pekerjaan_ayah'] ?? null,
-                            'penghasilan_ayah' => $kandidat['penghasilan_ayah'] ?? null,
-                            'nama_ibu' => $kandidat['nama_ibu'] ?? null,
-                            'nik_ibu' => $kandidat['nik_ibu'] ?? null,
-                            'tgl_lahir_ibu' => $kandidat['tgl_lahir_ibu'] ?? null,
-                            'pendidikan_ibu' => $kandidat['pendidikan_ibu'] ?? null,
-                            'pekerjaan_ibu' => $kandidat['pekerjaan_ibu'] ?? null,
-                            'penghasilan_ibu' => $kandidat['penghasilan_ibu'] ?? null,
-                            'nama_wali' => $kandidat['nama_wali'] ?? null,
-                            'nik_wali' => $kandidat['nik_wali'] ?? null,
-                            'tgl_lahir_wali' => $kandidat['tgl_lahir_wali'] ?? null,
-                            'pendidikan_wali' => $kandidat['pendidikan_wali'] ?? null,
-                            'pekerjaan_wali' => $kandidat['pekerjaan_wali'] ?? null,
-                            'penghasilan_wali' => $kandidat['penghasilan_wali'] ?? null,
-                        ]
-                    );
+                        // 3. Create Biodata penuh dari snapshot PMB.
+                        Biodata::updateOrCreate(
+                            ['mahasiswa_id' => $mahasiswa->mahasiswa_id],
+                            [
+                                'tenant_id' => $draft->tenant_id,
+                                'nik' => $kandidat['nik'] ?? null,
+                                'tempat_lahir' => $kandidat['tempat_lahir'] ?? null,
+                                'tgl_lahir' => $kandidat['tanggal_lahir'] ?? null,
+                                'jenis_kelamin' => $kandidat['jenis_kelamin'] ?? null,
+                                'agama' => $kandidat['agama'] ?? null,
+                                'kewarganegaraan' => $kandidat['kewarganegaraan'] ?? null,
+                                'suku' => $kandidat['suku'] ?? null,
+                                'alamat' => $kandidat['alamat_lengkap'] ?? $kandidat['alamat'] ?? null,
+                                'provinsi_kode' => $kandidat['provinsi_kode'] ?? null,
+                                'kabupaten_kode' => $kandidat['kabupaten_kode'] ?? null,
+                                'kecamatan_kode' => $kandidat['kecamatan_kode'] ?? null,
+                                'kelurahan_kode' => $kandidat['kelurahan_kode'] ?? null,
+                                'kode_pos' => $kandidat['kode_pos'] ?? null,
+                                'nama_ayah' => $kandidat['nama_ayah'] ?? null,
+                                'nik_ayah' => $kandidat['nik_ayah'] ?? null,
+                                'tgl_lahir_ayah' => $kandidat['tgl_lahir_ayah'] ?? null,
+                                'pendidikan_ayah' => $kandidat['pendidikan_ayah'] ?? null,
+                                'pekerjaan_ayah' => $kandidat['pekerjaan_ayah'] ?? null,
+                                'penghasilan_ayah' => $kandidat['penghasilan_ayah'] ?? null,
+                                'nama_ibu' => $kandidat['nama_ibu'] ?? null,
+                                'nik_ibu' => $kandidat['nik_ibu'] ?? null,
+                                'tgl_lahir_ibu' => $kandidat['tgl_lahir_ibu'] ?? null,
+                                'pendidikan_ibu' => $kandidat['pendidikan_ibu'] ?? null,
+                                'pekerjaan_ibu' => $kandidat['pekerjaan_ibu'] ?? null,
+                                'penghasilan_ibu' => $kandidat['penghasilan_ibu'] ?? null,
+                                'nama_wali' => $kandidat['nama_wali'] ?? null,
+                                'nik_wali' => $kandidat['nik_wali'] ?? null,
+                                'tgl_lahir_wali' => $kandidat['tgl_lahir_wali'] ?? null,
+                                'pendidikan_wali' => $kandidat['pendidikan_wali'] ?? null,
+                                'pekerjaan_wali' => $kandidat['pekerjaan_wali'] ?? null,
+                                'penghasilan_wali' => $kandidat['penghasilan_wali'] ?? null,
+                            ]
+                        );
 
-
-
-                    // 4-5. Riwayat + semester dibuat di createFromSyncPayload (pintu tunggal).
+                        // 4-5. Riwayat + semester dibuat di createFromSyncPayload (pintu tunggal).
 
                     } catch (\Throwable $e) {
                         $user->forceDelete();
@@ -435,34 +449,18 @@ class MahasiswaDraftService
                         throw $e;
                     }
 
-                    // 6. Update draft: status_draft='submitted', submitted_at=now()
+                    // 6. Update draft: status_draft='terima', submitted_at=now()
                     $draft->update([
-                        'status_draft' => 'submitted',
+                        'status_draft' => 'terima',
                         'submitted_at' => now(),
                     ]);
 
-                    // 7. Kabari PMB: catat nim_final + finalized_at.
-                    // Satu server = langsung in-process; beda server = HTTP.
-                    try {
-                        if (use_local('pmb', \Modules\Pmb\Services\PendaftaranService::class)) {
-                            app(\Modules\Pmb\Services\PendaftaranService::class)->applyFinalize(
-                                (int) $draft->pmb_pendaftar_id,
-                                $nim,
-                                now()->toIso8601String(),
-                            );
-                        } else {
-                            $pmbBase = config('akademik.pmb_base_url');
-                            $pmbToken = config('akademik.pmb_token');
-                            if ($pmbBase && $pmbToken) {
-                                service_api('pmb', 'POST', "/api/v1/pmb/pendaftaran/{$draft->pmb_pendaftar_id}/finalize", [
-                                    'nim_final' => $nim,
-                                    'finalized_at' => now()->toIso8601String(),
-                                ], ['base_url' => $pmbBase, 'token' => $pmbToken]);
-                            }
-                        }
-                    } catch (\Throwable $e) {
-                        report($e);
-                    }
+                    // 7. Kabari PMB: catat nim_final + finalized_at (via PmbReference).
+                    $this->pmbReference->finalize(
+                        (int) $draft->pmb_pendaftar_id,
+                        $nim,
+                        now()->toIso8601String(),
+                    );
 
                     $submitted++;
                 });

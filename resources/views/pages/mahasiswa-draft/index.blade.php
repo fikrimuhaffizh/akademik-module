@@ -23,24 +23,24 @@
 </div>
 
 <x-ui.card>
-    <x-ui.card-header class="border-bottom">
-        <x-ui.datatable-toolbar dataTableId="table-mahasiswa-draft">
+    <x-ui.card-header class="d-flex flex-wrap align-items-center justify-content-between">
+        <x-ui.datatable-toolbar dataTableId="table-mahasiswa-draft" class="flex-grow-1" :filter="false">
             <x-slot:actions>
-                <button type="button" id="btn-bulk-kurikulum" class="btn btn-outline-primary ajax-modal-btn"
-                        data-url="{{ route('akd.mahasiswa-draft.set-kurikulum-bulk.form') }}"
-                        data-modal-title="Set Kurikulum" data-modal-size="modal-lg">
-                    <i class="ti ti-book-2 me-1"></i> Set Kurikulum
-                </button>
-                <button type="button" id="btn-bulk-status" class="btn btn-outline-secondary ajax-modal-btn"
-                        data-url="{{ route('akd.mahasiswa-draft.set-status-bulk.form') }}"
-                        data-modal-title="Set Status Akhir" data-modal-size="modal-sm">
-                    <i class="ti ti-flag-check me-1"></i> Set Status Akhir
-                </button>
-                <button type="button" id="btn-bulk-submit" class="btn btn-primary" disabled>
-                    <i class="ti ti-send me-1"></i> Submit Selected
+                <button type="button" id="btn-bulk-delete-confirm" class="dropdown-item text-danger d-none">
+                    <i class="ti ti-trash me-1"></i> Hapus Dipilih (<span class="bulk-count">0</span>)
                 </button>
             </x-slot:actions>
         </x-ui.datatable-toolbar>
+        <div class="d-flex flex-wrap gap-2 ms-auto">
+            <x-ui.button type="button" text="Set Kurikulum" icon="ti ti-book-2" size="sm" color="btn-outline-primary" class="ajax-modal-btn"
+                id="btn-bulk-kurikulum"
+                data-url="{{ route('akd.mahasiswa-draft.set-kurikulum-bulk.form') }}"
+                data-modal-title="Set Kurikulum" data-modal-size="modal-lg" />
+            <x-ui.button type="button" text="Set Status Akhir" icon="ti ti-flag-check" size="sm" color="btn-outline-secondary" class="ajax-modal-btn"
+                id="btn-bulk-status"
+                data-url="{{ route('akd.mahasiswa-draft.set-status-bulk.form') }}"
+                data-modal-title="Set Status Akhir" data-modal-size="modal-sm" />
+        </div>
     </x-ui.card-header>
 
     <div class="collapse" id="table-mahasiswa-draft-filter-area">
@@ -50,7 +50,8 @@
                     <x-ui.form-select name="status_draft" label="Status" placeholder="Semua Status">
                         <option value="all">Semua Status</option>
                         <option value="draft">Draft</option>
-                        <option value="submitted">Submitted</option>
+                        <option value="terima">Terima</option>
+                        <option value="batal">Batal</option>
                     </x-ui.form-select>
                 </div>
                 <div class="col-md-3">
@@ -102,8 +103,10 @@
 
         const updateBulkButtons = () => {
             const count = getSelectedIds().length;
-            const submitBtn = document.getElementById('btn-bulk-submit');
-            if (submitBtn) submitBtn.disabled = count === 0;
+            const deleteItem = document.querySelector('.dropdown-item.text-danger');
+            const countSpans = document.querySelectorAll('.bulk-count');
+            if (deleteItem) deleteItem.classList.toggle('d-none', count === 0);
+            countSpans.forEach(span => span.textContent = count);
         };
 
         document.addEventListener('change', (e) => {
@@ -112,48 +115,55 @@
             }
         });
 
-        // ── Bulk submit (AJAX) ──
-        document.getElementById('btn-bulk-submit')?.addEventListener('click', function () {
+        // ── Bulk delete (AJAX) ──
+        document.getElementById('btn-bulk-delete-confirm')?.addEventListener('click', function () {
             const ids = getSelectedIds();
             if (! ids.length) return;
-            const btn = this;
-            const original = btn.innerHTML;
-            btn.disabled = true;
-            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Mengirim...';
 
-            axios.post('{{ route("akd.mahasiswa-draft.submit") }}', { draft_ids: ids }, {
-                headers: { 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest' },
-            }).then(function (res) {
-                showSuccessMessage(res.data?.message || 'Submit selesai');
-                if (typeof reloadDataTable === 'function') reloadDataTable('table-mahasiswa-draft');
-                updateBulkButtons();
-            }).catch(function (err) {
-                showErrorMessage(err.response?.data?.message || err.message);
-                btn.disabled = false;
-                btn.innerHTML = original;
+            Swal.fire({
+                title: 'Hapus Massal?',
+                text: ids.length + ' draft akan dihapus.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d63939',
+                confirmButtonText: 'Ya, Hapus',
+                cancelButtonText: 'Batal',
+            }).then(function (result) {
+                if (! result.isConfirmed) return;
+
+                axios.post('{{ route("akd.mahasiswa-draft.bulk-destroy") }}', { ids: ids }, {
+                    headers: { 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest' },
+                }).then(function (res) {
+                    showSuccessMessage(res.data?.message || 'Berhasil dihapus');
+                    if (typeof reloadDataTable === 'function') reloadDataTable('table-mahasiswa-draft');
+                    updateBulkButtons();
+                }).catch(function (err) {
+                    showErrorMessage(err.response?.data?.message || err.message);
+                });
             });
         });
 
-        // ── Pass selected ids into bulk modals (content loads async).
-        // Tanpa checklist = terapkan ke semua draft (ids kosong). ──
+        // ── Pass selected ids into bulk modals ──
+        window._bulkDraftIds = [];
         ['btn-bulk-kurikulum', 'btn-bulk-status'].forEach(btnId => {
             const b = document.getElementById(btnId);
             if (! b) return;
             b.addEventListener('click', function () {
-                const ids = getSelectedIds();
+                window._bulkDraftIds = getSelectedIds();
                 const isKur = btnId === 'btn-bulk-kurikulum';
-                let tries = 0;
-                const t = setInterval(() => {
-                    const countEl = document.getElementById(isKur ? 'bulk-kurikulum-count' : 'bulk-status-count');
-                    const idsEl = document.getElementById(isKur ? 'bulk-kurikulum-draft-ids' : 'bulk-status-draft-ids');
-                    if (countEl && idsEl) {
-                        countEl.textContent = ids.length;
-                        idsEl.value = JSON.stringify(ids);
-                        clearInterval(t);
-                    } else if (++tries > 20) {
-                        clearInterval(t);
-                    }
-                }, 150);
+                const countId = isKur ? 'bulk-kurikulum-count' : 'bulk-status-count';
+                const idsId = isKur ? 'bulk-kurikulum-draft-ids' : 'bulk-status-draft-ids';
+                function tryFill() {
+                    const countEl = document.getElementById(countId);
+                    const idsEl = document.getElementById(idsId);
+                    if (countEl) countEl.textContent = window._bulkDraftIds.length;
+                    if (idsEl) idsEl.value = JSON.stringify(window._bulkDraftIds);
+                    return !!(countEl && idsEl);
+                }
+                if (tryFill()) return;
+                const obs = new MutationObserver(() => { if (tryFill()) obs.disconnect(); });
+                obs.observe(document.body, { childList: true, subtree: true });
+                setTimeout(() => obs.disconnect(), 5000);
             });
         });
 

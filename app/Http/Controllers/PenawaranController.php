@@ -59,11 +59,11 @@ class PenawaranController extends Controller
             );
         } catch (\Throwable $e) {
             logActivity('perkuliahan', 'Error Generate Penawaran MK: ' . $e->getMessage(), null);
-            return jsonError('Terjadi kesalahan saat generate penawaran: ' . $e->getMessage());
+            return jsonError('Terjadi kesalahan saat generate penawaran: ' . $e->getMessage(), 500);
         }
 
         if (! empty($result['errors'])) {
-            return jsonError(implode(' ', $result['errors']));
+            return jsonError(implode(' ', $result['errors']), 422);
         }
 
         $msg = "Generate selesai: {$result['created']} penawaran dibuat, {$result['skipped']} lewati (sudah ada).";

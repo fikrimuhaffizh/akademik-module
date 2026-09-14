@@ -31,7 +31,7 @@ Modul Akademik adalah modul **operasi akademik & siklus hidup mahasiswa** yang m
 - **Sys** — periode bersama, media (`sys_media_url` / `sys_storage_url`).
 - **Survei** (cross-module, FK logis) — `akd_edom_kelas.survei_id` → `survei_survei.survei_id`.
 
-Modul lain yang bergantung pada Akademik: **Pmb** (publish mahasiswa via `MahasiswaService::createFromPmb`), **Kemahasiswaan** (`kmhs_*.mahasiswa_id` → `akd_mahasiswa.mahasiswa_id`), **Kelulusan** (`lulus_yudisium.mahasiswa_id`, `NilaiService::getForKelulusan`, `MahasiswaService::isCekal`).
+Modul lain yang bergantung pada Akademik: **Pmb** (Akademik menarik kandidat final PMB lewat `MahasiswaDraftService` + `References\PmbReference`; PMB tidak memanggil Akademik sama sekali), **Kemahasiswaan** (`kmhs_*.mahasiswa_id` → `akd_mahasiswa.mahasiswa_id`), **Kelulusan** (`lulus_yudisium.mahasiswa_id`, `NilaiService::getForKelulusan`, `MahasiswaService::isCekal`).
 
 ## Daftar Tabel & Model
 
@@ -213,7 +213,7 @@ erDiagram
 - `akd_nilai_akhir.mata_kuliah_id` → `kur_mata_kuliah.mata_kuliah_id` (Kurikulum) — FK logis.
 - `akd_pembebanan_dosen.pegawai_id` / `akd_pembimbing_mahasiswa.pegawai_id` → `hr_pegawai.pegawai_id` (HrCore) — FK logis.
 - `akd_edom_kelas.survei_id` → `survei_survei.survei_id` (Survei) — FK logis, tidak ada constraint.
-- Layanan lintas modul: `MahasiswaService::createFromPmb()` (dipanggil Pmb), `NilaiService::getForKelulusan()/hitungIpk()` (dipanggil Kelulusan), `MahasiswaService::isCekal()` (dipanggil Kelulusan & Kemahasiswaan), `Kurikulum\SettingProdiService::getKurikulumForAngkatan()` (dipanggil Pmb).
+- Layanan lintas modul: `MahasiswaService::createFromSyncPayload()` (dipanggil alur draft `MahasiswaDraftService`), `NilaiService::getForKelulusan()/hitungIpk()` (dipanggil Kelulusan), `MahasiswaService::isCekal()` (dipanggil Kelulusan & Kemahasiswaan), `Kurikulum\SettingProdiService::getKurikulumForAngkatan()` (dipakai internal untuk resolve kurikulum).
 
 Semua relasi di-scoped per `tenant_id` (multi-tenant).
 
@@ -227,7 +227,7 @@ Struktur direktori:
 - `app/Providers/AkademikServiceProvider.php` — registrasi route, view, policy.
 
 Daftar fat-service & tanggung jawab utama:
-- **MahasiswaService** — CRUD mahasiswa, `createFromPmb()` (cross-module bridge dari Pmb), `isCekal()`, `isCutiAktif()`.
+- **MahasiswaService** — baca/ubah data mahasiswa, `createFromSyncPayload()` (pintu tunggal pembuatan dari kandidat final PMB), `isCekal()`, `isCutiAktif()`. **Tidak ada tambah mahasiswa manual dari UI** (`create`/`store` dihapus bersama tombolnya): sumber mahasiswa hanya alur draft PMB atau **impor massal** — impor sengaja dipertahankan sebagai pengecualian (migrasi/perpindahan data lama). Pemeriksaan NIM terhadap PMB untuk jalur impor masih terbuka untuk diputuskan kemudian.
 - **BiodataService** — CRUD biodata mahasiswa.
 - **TahunAjaranService / PeriodeAkademikService / KalenderAkademikService** — master waktu akademik; kalender memicu event `krs`/`edom`.
 - **PenawaranService / GeneratePenawaranService** — penawaran MK; `generate()` membangun penawaran dari Kurikulum (`KurikulumService`) per periode & prodi.
@@ -242,7 +242,7 @@ Daftar fat-service & tanggung jawab utama:
 - **RekognisiService** — `getApprovedForTranskrip()` (konversi nilai disetujui masuk transkrip).
 - **MataKuliahService** — pencarian MK untuk Select2 (via Kurikulum).
 - **CekalService / CutiService / TransferService / RiwayatStatusService / StatusSemesterService** — status & riwayat mahasiswa.
-- **EdomService** — `generateForPeriode()`, `mulaiIsi()/selesaiIsi()`, `getRekapByKelas()`, sinkronisasi ke modul Survei.
+- **EdomService** — `generateForPeriode()`, `mulaiIsi()/selesaiIsi()`, `getRekapByKelas()`, `slugSurvei()` (redirect ke modul Survei), sinkronisasi ke modul Survei. Ini **satu-satunya** berkas di Akademik yang menyentuh Survei — dijaga `tests/Feature/Integration/SurveiCouplingTest.php`.
 - **DashboardService** — statistik admin & mahasiswa.
 
 Tidak ada interface/contract khusus di modul ini (service saling di-inject via constructor).
@@ -299,13 +299,14 @@ stateDiagram-v2
 
 ## Catatan Domain
 
-- **Mahasiswa bridge ke Pmb**: `akd_mahasiswa.pmb_pendaftar_id` adalah FK logis ke `pmb_pendaftaran`. Mahasiswa dibuat lewat `MahasiswaService::createFromPmb()` yang dipanggil oleh `Pmb\PublishMahasiswaService`.
+- **Mahasiswa bridge ke Pmb**: `akd_mahasiswa.pmb_pendaftar_id` adalah FK logis ke `pmb_pendaftaran`. **Akademik yang menarik** kandidat final PMB (`MahasiswaDraftService::syncFromPmb()` → `References\PmbReference::kandidatFinal()`), menaruhnya di `akd_mahasiswa_draft`, lalu membuat mahasiswa dari draft yang di-submit lewat `MahasiswaService::createFromSyncPayload()` — **pintu tunggal** (sekaligus biodata, metadata, riwayat status, status semester). Mengabari NIM final dipakai lewat `PmbReference::finalize()`. Semuanya lewat satu pintu HTTP `service_api('pmb', ...)` — tidak ada akses view/tabel PMB (dulu `v_pmb_kandidat_final`) maupun jalur in-process. Jalur **push** PMB → Akademik (`Pmb\PublishMahasiswaService`, `PendaftaranService::sinkronToMahasiswa()`, `POST /mhs/mahasiswa/create-from-pmb`, `MahasiswaService::createFromPmb()` + legacy `syncFromPmb()`) sudah **dihapus**: duplikat alur draft, tanpa UI, dan versi tipis. NIM **tidak** digenerate Akademik — PMB yang menerbitkan (dan memeriksa keunikannya lokal, karena cek silang ke Akademik dulu fail-soft sehingga tidak menjamin apa pun); yang mengikat justru guard `MahasiswaService::nimExists()` di `MahasiswaDraftService::submit()`, dijalankan di dalam transaksi insert sehingga NIM tidak bisa dobel.
+- **Master prodi/struktur organisasi dari SDM lewat `References\HrmaxReference`** (`GET /api/v1/hr-max/prodi`, satu panggilan untuk banyak `orgunit_id` lewat `namaUnit()`). Sebelumnya `KrsService` men-query `Modules\HrMax\Models\StrukturOrganisasi` langsung — itu mati begitu modul HRMax tidak terpasang di server Akademik. Tidak ada `service_api()` di luar `app/Services/References/`.
 - **Prodi = orgunit**: semua referensi prodi pakai `orgunit_id` dari `hr_struktur_organisasi` (HrCore).
 - **`akd_setting_prodi` tanpa model dedicated**: tabel ada (migrasi) untuk jendela buka KRS/KHS/nilai & min presensi per prodi-periode; namun tidak ada `SettingProdi.php` model di Akademik — diakses via raw query / `Kurikulum\SettingProdiService` untuk binding kurikulum.
 - **Unique constraints**: `akd_mahasiswa.nim`; `akd_ruang_kuliah.(tenant_id,kode)`; `akd_setting_prodi.(tenant_id,periode_akademik_id,prodi_id)`; `akd_edom_kelas.(tenant_id,kelas_id,periode_akademik_id)`; `akd_edom_status.(tenant_id,periode_akademik_id,mahasiswa_id,kelas_id)`; `akd_publish_batch.reference_code`.
 - **Cascade delete**: `periode_akademik → penawaran → kelas → jadwal/pembebanan`; `kelas → edom_kelas/edom_status`. Hati-hati menghapus periode akan menghapus seluruh turunan.
 - **Soft delete + blameable**: semua tabel pakai `softDeletes()` dan kolom `created_by/updated_by/deleted_by` + `id` terkait (`addStandardColumns`/`BaseMigration`).
-- **EDOM cross-module**: `akd_edom_kelas.survei_id` FK logis ke modul Survei (tanpa constraint). Status pengisian disinkronkan dua arah (`syncDariSurvei`).
+- **EDOM cross-module**: `akd_edom_kelas.survei_id` FK logis ke modul Survei (tanpa constraint). Status pengisian disinkronkan dua arah (`syncDariSurvei`). Survei **bukan** modul K4 (lihat `docs/06-development/integration.md`): ia tidak menyediakan API, jadi kontraknya adalah *service*-nya, bukan HTTP — dan seluruh kopling Akademik → Survei dikumpulkan di `EdomService` (audit 2026-09-15). Tiga hal yang dulu melewati batas itu sudah dibuang: `EdomController` menyuntik `SurveiService` beserta lookup slug-nya (kini `EdomService::slugSurvei()`), dua controller meng-import model Survei tanpa memakainya, dan `EdomStatus::surveiPengisian()` — relasi ke `Pengisian` yang tidak pernah dipanggil siapa pun. **Yang masih terbuka:** `EdomService` membaca `survei_survei`/`survei_pengisian`/`survei_jawaban` lewat model Survei, bukan lewat service Survei. Perbaikannya menunggu keputusan: (a) pindahkan kueri ke service Survei (`SurveiService`/`SurveiResponseService`) sebagai kontrak lintas modul, atau (b) naikkan Survei menjadi modul ber-API + `SurveiReference` di Akademik.
 - **Batasan SKS dinamis**: `BatasSksService::getBatasByIpk()` memetakan IPK ke `max_sks` lewat rentang `ipk_min..ipk_max`.
 - **Media & keamanan**: foto mahasiswa/biodata & bukti dokumen harus diakses via `sys_media_url()` / `sys_storage_url()` — **tidak ada symlink public** ke storage. Akses halaman & aksi dilindungi `can()` / `hasRole()` (RBAC).
 - **Multi-tenant**: seluruh query di-scoped `tenant_id`; controller/service memanggil `sys_tenant_id()`.

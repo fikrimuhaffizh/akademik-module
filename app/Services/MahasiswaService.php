@@ -6,7 +6,6 @@ use Modules\Akademik\Models\Mahasiswa;
 use Modules\Akademik\Models\Krs;
 use Modules\Akademik\Models\Nilai;
 use Modules\Akademik\Models\PeriodeAkademik;
-use Modules\Kurikulum\Services\KurikulumService;
 use Modules\Kurikulum\Services\SettingProdiService;
 use Modules\Referensi\Services\SysRefService;
 use Modules\Kurikulum\Models\SettingProdi;
@@ -15,7 +14,6 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Collection as SupportCollection;
 use Illuminate\Support\Facades\DB;
-use Modules\Akademik\Models\Biodata;
 use Modules\Akademik\Models\Cekal;
 use Modules\Akademik\Models\Cuti;
 use Modules\Akademik\Services\NilaiService;
@@ -24,7 +22,6 @@ use Modules\Akademik\Services\PeriodeAkademikService;
 class MahasiswaService
 {
     public function __construct(
-        protected KurikulumService $kurikulumService,
         protected NilaiService $nilaiService,
         protected SysRefService $sysRefService,
     ) {}
@@ -87,24 +84,18 @@ class MahasiswaService
     }
 
     /**
-     * INT-01: Defense-in-depth guard untuk NimGeneratorService.
-     * Cek apakah NIM sudah ada di tabel Mahasiswa (cross-module read-only).
-     * Dipanggil Pmb saat generate NIM untuk tabrakan race condition.
+     * Guard keunikan NIM — dipakai di titik NIM masuk `akd_mahasiswa`.
+     * Cek apakah NIM sudah ada di tabel Mahasiswa.
+     *
+     * Dipanggil `MahasiswaDraftService::submit()` saat submit draft PMB; itulah
+     * guard NIM yang mengikat (PMB tidak lagi bertanya lebih dulu, sebab cek
+     * dini dari PMB bersifat fail-soft dan tidak menjamin keunikan).
      */
     public function nimExists(string $nim): bool
     {
         return Mahasiswa::where('nim', $nim)->exists();
     }
 
-    public function create(array $data): Mahasiswa
-    {
-        return DB::transaction(function () use ($data) {
-            $entity = Mahasiswa::create($data);
-            logActivity('mahasiswa', sprintf('Menambah mahasiswa: %s - %s', $entity->nim, $entity->nama), $entity);
-
-            return $entity;
-        });
-    }
 
     public function update(string|int $id, array $data): Mahasiswa
     {
@@ -124,56 +115,6 @@ class MahasiswaService
             logActivity('mahasiswa', sprintf('Menghapus mahasiswa: %s - %s', $entity->nim, $entity->nama), null);
 
             return $entity->delete();
-        });
-    }
-
-    /**
-     * Sinkronisasi data mahasiswa baru dari PMB (legacy — prefer createFromPmb).
-     * Caller MUST pass data array from PMB's PendaftaranService::getSyncData() — never query PMB models directly.
-     */
-    public function syncFromPmb(array $syncData, string $nim, int $prodiId, int $angkatan): Mahasiswa
-    {
-        return DB::transaction(function () use ($syncData, $nim, $prodiId, $angkatan) {
-            $pendaftaran = $syncData['pendaftaran'];
-            $kandidat = $syncData['kandidat'];
-            $kurikulumKode = $this->kurikulumService->getKodeKurikulumBinding($prodiId, $angkatan);
-
-            // Create or Update Mahasiswa
-            $mahasiswa = Mahasiswa::updateOrCreate(
-                ['nim' => $nim],
-                [
-                    'tenant_id' => $pendaftaran['tenant_id'],
-                    'user_id' => $pendaftaran['user_id'],
-                    'pmb_pendaftar_id' => $pendaftaran['pendaftaran_id'] ?? $pendaftaran['pmb_pendaftar_id'] ?? null,
-                    'nama' => $kandidat['nama_lengkap'],
-                    'email' => $kandidat['email'],
-                    'no_hp' => $kandidat['no_hp'] ?? null,
-                    'prodi_id' => $prodiId,
-                    'angkatan' => $angkatan,
-                    'kurikulum_kode' => $kurikulumKode,
-                    'status' => 'aktif',
-                    'jenis_masuk' => 'reguler',
-                    'semester_masuk' => 1,
-                ]
-            );
-
-            // Create Biodata
-            Biodata::updateOrCreate(
-                ['mahasiswa_id' => $mahasiswa->mahasiswa_id],
-                [
-                    'tenant_id' => $mahasiswa->tenant_id,
-                    'nik' => $kandidat['nik'],
-                    'tempat_lahir' => $kandidat['tempat_lahir'],
-                    'tgl_lahir' => $kandidat['tanggal_lahir'],
-                    'jenis_kelamin' => $kandidat['jenis_kelamin'],
-                    'agama' => $kandidat['agama'],
-                    'alamat' => $kandidat['alamat'],
-                ]
-            );
-
-            logActivity('mahasiswa', sprintf('Sinkronisasi MHS dari PMB: %s - %s', $mahasiswa->nim, $mahasiswa->nama), $mahasiswa);
-
-            return $mahasiswa;
         });
     }
 
@@ -239,63 +180,6 @@ class MahasiswaService
             app(StatusSemesterService::class)->create([
                 'mahasiswa_id'     => $mahasiswa->mahasiswa_id,
                 'periode_akademik_id' => app(PeriodeAkademikService::class)->getAktif()?->periode_akademik_id,
-                'status'           => 'aktif',
-                'semester_ke'      => 1,
-            ]);
-
-            return $mahasiswa->mahasiswa_id;
-        });
-    }
-
-    /**
-     * Create mahasiswa dari PMB.
-     * Akademik resolve kurikulum sendiri dari prodi_id + angkatan.
-     * PMB tidak perlu passing kurikulum_kode.
-     */
-    public function createFromPmb(array $payload): int
-    {
-        return DB::transaction(function () use ($payload) {
-            // Resolve kurikulum sendiri (bukan dari PMB)
-            $kurikulumKode = null;
-            try {
-                $settingProdi = app(SettingProdiService::class)
-                    ->getKurikulumForAngkatan($payload['prodi_id'], $payload['angkatan']);
-                $kurikulumKode = $settingProdi?->kurikulum?->kode_kurikulum;
-            } catch (\Throwable $e) {
-                report($e);
-            }
-
-            $mahasiswa = Mahasiswa::updateOrCreate(
-                ['nim' => $payload['nim']],
-                [
-                    'user_id' => $payload['user_id'] ?? null,
-                    'nama' => $payload['nama'],
-                    'prodi_id' => $payload['prodi_id'],
-                    'angkatan' => $payload['angkatan'],
-                    'kurikulum_kode' => $kurikulumKode,
-                    'pmb_pendaftar_id' => $payload['pmb_pendaftar_id'] ?? null,
-                    'status' => 'aktif',
-                    'jenis_masuk' => $payload['jenis_masuk'] ?? 'reguler',
-                    'semester_masuk' => 1,
-                ]
-            );
-
-            // Record Riwayat Status
-            app(RiwayatStatusService::class)->create([
-                'mahasiswa_id' => $mahasiswa->mahasiswa_id,
-                'status_lama' => null,
-                'status_baru' => 'aktif',
-                'alasan' => 'Dibuat dari Publish Mahasiswa PMB',
-                'tgl_efektif' => now()->toDateString(),
-                'diproses_oleh' => 'System (Publish Mahasiswa)',
-            ]);
-
-            logActivity('mahasiswa', sprintf('Create MHS dari PMB: %s - %s', $mahasiswa->nim, $mahasiswa->nama), $mahasiswa);
-
-            // Auto-create StatusSemester untuk semester 1
-            app(StatusSemesterService::class)->create([
-                'mahasiswa_id'     => $mahasiswa->mahasiswa_id,
-                'periode_akademik_id' => null,
                 'status'           => 'aktif',
                 'semester_ke'      => 1,
             ]);
@@ -404,6 +288,13 @@ class MahasiswaService
                 $q->where('nama', 'like', "%{$search}%")
                   ->orWhere('nim', 'like', "%{$search}%");
             });
+        }
+
+        // Filter NIM persis — inilah cara "cek NIM" lintas modul: satu panggilan
+        // ke endpoint daftar, `data` kosong berarti belum dipakai. Tidak perlu
+        // endpoint tersendiri yang query-nya harus dijaga sinkron.
+        if (! empty($filters['nim'])) {
+            $query->where('nim', $filters['nim']);
         }
 
         if (! empty($filters['angkatan'])) {

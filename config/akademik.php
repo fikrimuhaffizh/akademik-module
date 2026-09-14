@@ -24,12 +24,13 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | PMB API (Akademik calling back PMB)
+    | Kredensial ke PMB tidak di sini
     |--------------------------------------------------------------------------
     |
-    | Akademik memanggil PMB untuk: finalize pendaftaran (nim_final).
+    | Kredensial untuk memanggil PMB (PMB_SERVICE_URL / PMB_SERVICE_TOKEN)
+    | dibaca service_api() dari config/integration.php milik server ini — lihat
+    | Akademik\Services\References\PmbReference. Tidak ada salinan di config
+    | modul supaya tidak ada dua sumber kebenaran yang bisa berbeda.
     |
     */
-    'pmb_base_url' => env('PMB_SERVICE_URL', ''),
-    'pmb_token' => env('PMB_SERVICE_TOKEN', ''),
 ];

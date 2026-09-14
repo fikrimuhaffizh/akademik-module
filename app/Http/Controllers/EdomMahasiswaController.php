@@ -8,7 +8,6 @@ use Modules\Akademik\Services\EdomService;
 use Modules\Akademik\Services\KelasKuliahService;
 use Modules\Akademik\Services\KrsService;
 use Modules\Akademik\Services\MahasiswaService;
-use Modules\Survei\Models\Survei\Survei;
 
 class EdomMahasiswaController extends Controller
 {

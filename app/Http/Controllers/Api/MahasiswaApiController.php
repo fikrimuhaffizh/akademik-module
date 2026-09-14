@@ -5,7 +5,6 @@ namespace Modules\Akademik\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Modules\Akademik\Http\Requests\Api\CreateFromPmbRequest;
 use Modules\Akademik\Services\MahasiswaService;
 
 /**
@@ -48,6 +47,12 @@ class MahasiswaApiController extends Controller
      * GET /api/v1/mhs/mahasiswa
      *
      * Daftar mahasiswa dengan identitas dasar.
+     *
+     * Filter: `nim` (persis), `angkatan`, `status`, `prodi_id`, `search`
+     * (nama/NIM mengandung), `per_page`.
+     *
+     * Cek satu NIM tidak perlu endpoint sendiri: panggil `?nim=25060001` dan
+     * lihat apakah `data` kosong.
      */
     public function index(Request $request): JsonResponse
     {
@@ -88,34 +93,6 @@ class MahasiswaApiController extends Controller
                 'prodi' => $item->prodi ? $item->prodi->name : null,
                 'status' => $item->status,
             ],
-        ]);
-    }
-
-    /**
-     * POST /api/v1/mhs/mahasiswa/create-from-pmb
-     *
-     * Create mahasiswa dari PMB. Akademik resolve kurikulum sendiri.
-     */
-    public function createFromPmb(CreateFromPmbRequest $request): JsonResponse
-    {
-        $mahasiswaId = $this->mahasiswaService->createFromPmb($request->validated());
-
-        return jsonSuccess('Mahasiswa berhasil dibuat dari PMB.', null, [
-            'data' => ['mahasiswa_id' => $mahasiswaId],
-        ], 201);
-    }
-
-    /**
-     * GET /api/v1/mhs/mahasiswa/nim-check?nim=...
-     *
-     * Cek apakah NIM sudah ada.
-     */
-    public function nimCheck(Request $request): JsonResponse
-    {
-        $nim = $request->input('nim', '');
-
-        return jsonSuccess('Pengecekan NIM selesai.', null, [
-            'exists' => $this->mahasiswaService->nimExists($nim),
         ]);
     }
 }

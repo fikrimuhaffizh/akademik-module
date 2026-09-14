@@ -2,7 +2,6 @@
 namespace Modules\Akademik\Services;
 
 use Modules\Kurikulum\Models\KurikulumMataKuliah;
-use Modules\HrMax\Models\StrukturOrganisasi;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -17,6 +16,7 @@ use Modules\Akademik\Models\KrsDetail;
 use Modules\Akademik\Models\Mahasiswa;
 use Modules\Akademik\Services\MahasiswaService;
 use Modules\Akademik\Services\NilaiService;
+use Modules\Akademik\Services\References\HrmaxReference;
 use Modules\Kurikulum\Models\PrasyaratMataKuliah;
 
 class KrsService
@@ -25,6 +25,7 @@ class KrsService
         protected BatasSksService $batasSksService,
         protected MahasiswaService $mahasiswaService,
         protected NilaiService $nilaiService,
+        protected HrmaxReference $hrmaxReference,
     ) {}
 
     public function getBaseQuery(): Builder
@@ -571,8 +572,9 @@ class KrsService
         );
 
         $prodiIds  = $grouped->keys()->map(fn($k) => (int) explode('|', $k)[1])->unique()->values();
-        $prodiNama = StrukturOrganisasi::whereIn('orgunit_id', $prodiIds)
-            ->pluck('name', 'orgunit_id');
+        // Nama prodi adalah data SDM → lewat HrmaxReference (satu panggilan HTTP
+        // untuk semua orgunit_id), bukan query tabel modul lain.
+        $prodiNama = $this->hrmaxReference->namaUnit($prodiIds->all());
 
         $result = collect();
         foreach ($grouped as $key => $items) {

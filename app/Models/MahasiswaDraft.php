@@ -7,6 +7,7 @@ use App\Traits\Blameable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Modules\HrCore\Models\StrukturOrganisasi;
 use App\Traits\HashidBinding;
 
 class MahasiswaDraft extends Model
@@ -43,7 +44,7 @@ class MahasiswaDraft extends Model
 
     public function prodi(): BelongsTo
     {
-        return $this->belongsTo(\Modules\HrCore\Models\StrukturOrganisasi::class, 'prodi_id', 'orgunit_id');
+        return $this->belongsTo(StrukturOrganisasi::class, 'prodi_id', 'orgunit_id');
     }
 
     public function getKandidatAttribute(): ?array
@@ -56,8 +57,8 @@ class MahasiswaDraft extends Model
         return $query->where('status_draft', 'draft');
     }
 
-    public function scopeSubmitted($query)
+    public function scopeTerima($query)
     {
-        return $query->where('status_draft', 'submitted');
+        return $query->where('status_draft', 'terima');
     }
 }

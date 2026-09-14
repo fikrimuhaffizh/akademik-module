@@ -2,40 +2,88 @@
     title="Set Kurikulum (Massal)"
     :route="route('akd.mahasiswa-draft.set-kurikulum-bulk')"
     method="PUT"
-    size="modal-lg"
-    submitText="Terapkan ke Terpilih"
+    size="modal-md"
+    submitText="Terapkan"
 >
     <input type="hidden" name="draft_ids" id="bulk-kurikulum-draft-ids" value="">
     <div class="text-secondary small mb-3">
-        <i class="ti ti-info-circle me-1"></i> Draft terpilih: <strong id="bulk-kurikulum-count">0</strong>. Ubah pilihan di atas datatable untuk mengubah jumlah.
+        <i class="ti ti-info-circle me-1"></i> Draft terpilih: <strong id="bulk-kurikulum-count">0</strong>.
     </div>
 
-    <div class="mb-3">
-        <label class="form-label">Cara Penentuan</label>
-        <div>
-            <div class="form-check">
-                <input class="form-check-input" type="radio" name="mode" value="auto" id="kur-mode-auto" checked
-                       onchange="document.getElementById('kur-manual-wrap').classList.add('d-none')">
-                <label class="form-check-label" for="kur-mode-auto">
-                    <strong>Otomatis (rekomendasi)</strong> — resolve per draft via Setting Prodi: kurikulum dicari berdasarkan prodi + angkatan tiap draft (kurikulum dan prodi berbagi kode yang sama).
-                </label>
-            </div>
-            <div class="form-check">
-                <input class="form-check-input" type="radio" name="mode" value="manual" id="kur-mode-manual"
-                       onchange="document.getElementById('kur-manual-wrap').classList.remove('d-none')">
-                <label class="form-check-label" for="kur-mode-manual">
-                    <strong>Manual</strong> — paksa semua draft terpilih ke satu kurikulum di bawah.
-                </label>
-            </div>
+    <x-ui.form-select name="mode" label="Cara Penentuan" required>
+        <option value="auto">Otomatis — Ambil kurikulum sesuai program studi dan angkatan</option>
+        <option value="manual">Manual — Pilih kurikulum sendiri</option>
+    </x-ui.form-select>
+
+    <div id="kur-manual-wrap" class="d-none">
+        <div id="kur-loading" class="d-none text-center py-3">
+            <div class="spinner-border spinner-border-sm me-2"></div> Memuat kurikulum...
+        </div>
+        <div id="kur-error" class="alert alert-danger d-none mb-0"></div>
+        <div id="kur-select-wrap" class="d-none">
+            <div class="text-secondary small mb-2" id="kur-info"></div>
+            <select name="kurikulum_kode" id="kur-select" class="form-select" required>
+                <option value="">-- Pilih Kurikulum --</option>
+            </select>
         </div>
     </div>
 
-    <div id="kur-manual-wrap" class="d-none">
-        <x-ui.form-select name="kurikulum_kode" label="Kurikulum" type="select2">
-            <option value="">-- Pilih Kurikulum --</option>
-            @foreach(($kurikulumOptions ?? collect()) as $kur)
-                <option value="{{ $kur->kode_kurikulum }}">{{ $kur->kode_kurikulum }} — {{ $kur->nama }}</option>
-            @endforeach
-        </x-ui.form-select>
-    </div>
+    <script>
+        (function () {
+            const modeSelect = document.querySelector('[name="mode"]');
+            const manualWrap = document.getElementById('kur-manual-wrap');
+            const loadingEl = document.getElementById('kur-loading');
+            const errorEl = document.getElementById('kur-error');
+            const selectWrap = document.getElementById('kur-select-wrap');
+            const infoEl = document.getElementById('kur-info');
+            const selectEl = document.getElementById('kur-select');
+            let fetched = false;
+
+            modeSelect?.addEventListener('change', function () {
+                const isManual = this.value === 'manual';
+                manualWrap.classList.toggle('d-none', !isManual);
+                if (isManual && !fetched) {
+                    fetchKurikulum();
+                }
+            });
+
+            function fetchKurikulum() {
+                const ids = window._bulkDraftIds || [];
+                if (!ids.length) {
+                    errorEl.textContent = 'Tidak ada draft terpilih. Centang minimal satu draft di tabel.';
+                    errorEl.classList.remove('d-none');
+                    return;
+                }
+
+                loadingEl.classList.remove('d-none');
+                errorEl.classList.add('d-none');
+                selectWrap.classList.add('d-none');
+
+                axios.post('{{ route("akd.mahasiswa-draft.kurikulum-options") }}', { draft_ids: ids }, {
+                    headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '' }
+                }).then(function (res) {
+                    const data = res.data?.data;
+                    if (!data?.kurikulum?.length) {
+                        errorEl.textContent = 'Tidak ada kurikulum aktif untuk prodi "' + (data?.prodi_name || '-') + '" angkatan ' + (data?.angkatan || '-') + '.';
+                        errorEl.classList.remove('d-none');
+                        return;
+                    }
+                    infoEl.textContent = 'Prodi: ' + data.prodi_name + ' | Angkatan: ' + data.angkatan;
+                    selectEl.innerHTML = '<option value="">-- Pilih Kurikulum --</option>';
+                    data.kurikulum.forEach(function (k) {
+                        const label = (k.kode_kurikulum || '-') + ' — ' + k.nama + ' (' + k.tahun + ')';
+                        selectEl.innerHTML += '<option value="' + k.kode_kurikulum + '">' + label + '</option>';
+                    });
+                    selectWrap.classList.remove('d-none');
+                    fetched = true;
+                }).catch(function (err) {
+                    const msg = err.response?.data?.message || 'Gagal memuat kurikulum.';
+                    errorEl.textContent = msg;
+                    errorEl.classList.remove('d-none');
+                }).finally(function () {
+                    loadingEl.classList.add('d-none');
+                });
+            }
+        })();
+    </script>
 </x-ui.form-modal>
