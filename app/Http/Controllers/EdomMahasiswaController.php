@@ -48,7 +48,7 @@ class EdomMahasiswaController extends Controller
         $periodeId = $event->periode_akademik_id;
         $survei = $this->edomService->getEdomSurvei();
 
-        // Kelas kuliah yang diambil mahasiswa di periode EDOM (via KRS detail → krs).
+        // Kelas kuliah yang diambil mahasiswa di periode EDOM (via KRS detail => krs).
         $kelasIds = $this->krsService->getKelasIdsByMahasiswaPeriode($mahasiswa->mahasiswa_id, $periodeId);
 
         $kelasList = $this->kelasKuliahService->getByIds($kelasIds->all());
@@ -62,7 +62,7 @@ class EdomMahasiswaController extends Controller
                 $edomStatus = $this->edomService->ensureStatus($periodeId, $mahasiswa->mahasiswa_id, $kelas->kelas_id);
             }
 
-            // Sinkron status dari Survei (lazy) — pembeda per kelas = entitas_target.
+            // Sinkron status dari Survei (lazy) - pembeda per kelas = entitas_target.
             $edomStatus = $this->edomService->syncDariSurvei($edomStatus);
 
             $link = null;

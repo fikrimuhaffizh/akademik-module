@@ -3,6 +3,7 @@
 namespace Modules\Akademik\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use Modules\Akademik\Http\Requests\TransferRejectRequest;
 use Modules\Akademik\Http\Requests\TransferRequest;
 use Modules\Akademik\Services\TransferService;
 use Illuminate\Http\Request;
@@ -89,9 +90,9 @@ class TransferController extends Controller
     /**
      * Tolak transfer.
      */
-    public function reject(Request $request, string $id)
+    public function reject(TransferRejectRequest $request, string $id)
     {
-        $validated = $request->validate(['alasan' => 'required|string|max:1000']);
+        $validated = $request->validated();
         $this->service->reject($id, $validated['alasan']);
         return jsonSuccess('Transfer ditolak.', null, ['reload' => true]);
     }

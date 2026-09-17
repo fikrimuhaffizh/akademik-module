@@ -29,7 +29,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'check.expired', 'module:akademik'])->prefix('akd')->name('akd.')->group(function () {
 
-    // --- Dashboard ---
+    // Dashboard
     Route::redirect('/', '/akd/dashboard');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/mahasiswa', [MahasiswaDashboardController::class, 'index'])->name('dashboard.mahasiswa');
@@ -72,12 +72,12 @@ Route::middleware(['auth', 'check.expired', 'module:akademik'])->prefix('akd')->
     Route::delete('pembimbing-mahasiswa/import/{batchId}', [PembimbingMahasiswaImportController::class, 'cancel'])->name('pembimbing-mahasiswa.import.cancel');
 
 
-    // --- KRS Admin ---
+    // KRS Admin
     Route::get('/krs/data', [KrsController::class, 'data'])->name('krs.data');
     Route::get('krs/monitoring', [KrsController::class, 'monitoring'])->name('krs.monitoring');
     Route::resource('krs', KrsController::class)->except(['show'])->parameters(['krs' => 'krs']);
 
-    // --- Nilai (Import) ---
+    // Nilai (Import)
     Route::get('nilai/create', [NilaiController::class, 'create'])->name('nilai.create');
     Route::get('nilai', [NilaiController::class, 'index'])->name('nilai.index');
     Route::get('nilai/data', [NilaiController::class, 'data'])->name('nilai.data');
@@ -87,7 +87,7 @@ Route::middleware(['auth', 'check.expired', 'module:akademik'])->prefix('akd')->
     Route::post('nilai/import', [NilaiController::class, 'import'])->name('nilai.import');
     Route::get('nilai/template', [NilaiController::class, 'template'])->name('nilai.template');
 
-    // --- EDOM Admin ---
+    // EDOM Admin
     Route::get('/edom', [EdomController::class, 'adminIndex'])->name('edom.index');
     Route::get('/edom/data', [EdomController::class, 'adminData'])->name('edom.data');
     Route::post('/edom/{edomKelas}/activate', [EdomController::class, 'activate'])->name('edom.activate');
@@ -95,7 +95,7 @@ Route::middleware(['auth', 'check.expired', 'module:akademik'])->prefix('akd')->
     Route::get('/edom/{edomKelas}/rekap', [EdomController::class, 'rekap'])->name('edom.rekap');
     Route::post('/edom/generate/{periodeAkademik}', [EdomController::class, 'generate'])->name('edom.generate');
 
-    // --- EDOM Mahasiswa ---
+    // EDOM Mahasiswa
     Route::get('/edom/saya', [EdomController::class, 'mahasiswaIndex'])->name('edom.mahasiswa');
     Route::get('/edom/{edomKelas}/isi', [EdomController::class, 'mulaiIsi'])->name('edom.mulai');
 
@@ -115,10 +115,10 @@ Route::middleware(['auth', 'check.expired', 'module:akademik'])->prefix('akd')->
     // Export Mahasiswa
     Route::get('mahasiswa/export', [MahasiswaController::class, 'export'])->name('mahasiswa.export');
 
-    // Mahasiswa CRUD (show excluded — handled by detail route)
+    // Mahasiswa CRUD (show excluded - handled by detail route)
     Route::resource('mahasiswa', MahasiswaController::class)->except(['show', 'create', 'store']);
 
-    // Mahasiswa Detail (tab-based — MUST be after resource)
+    // Mahasiswa Detail (tab-based - MUST be after resource)
     Route::get('mahasiswa/{id}/{tab?}', [MahasiswaDetailController::class, 'show'])
         ->name('mahasiswa.detail')
         ->middleware('permission:akd.mahasiswa.view');
@@ -151,7 +151,7 @@ Route::middleware(['auth', 'check.expired', 'module:akademik'])->prefix('akd')->
     Route::post('krs/toggle', [KrsController::class, 'toggle'])->name('krs.toggle');
     Route::post('krs/ajukan', [KrsController::class, 'ajukan'])->name('krs.ajukan');
 
-    // EDOM Mahasiswa (sisi mahasiswa)
+    // EDOM mahasiswa
     Route::get('edom-mahasiswa', [EdomMahasiswaController::class, 'index'])->name('edom-mahasiswa.index');
 
     // Import Mahasiswa
@@ -165,7 +165,7 @@ Route::middleware(['auth', 'check.expired', 'module:akademik'])->prefix('akd')->
         Route::post('{batchId}/cancel', [MahasiswaImportController::class, 'cancel'])->name('cancel');
     });
 
-    // --- Mahasiswa Draft (PMB → Akademik Sync) ---
+    // Mahasiswa Draft (PMB => Akademik Sync)
     Route::get('mahasiswa-draft/data', [MahasiswaDraftController::class, 'data'])->name('mahasiswa-draft.data');
     Route::get('mahasiswa-draft', [MahasiswaDraftController::class, 'index'])->name('mahasiswa-draft.index');
     Route::post('mahasiswa-draft/sync', [MahasiswaDraftController::class, 'sync'])->name('mahasiswa-draft.sync');

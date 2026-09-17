@@ -16,7 +16,7 @@ class KrsDemoSeeder extends Seeder
      * Buat 1 KRS contoh: 1 mahasiswa mengambil 3 kelas (PW/BD/ALG kelas A)
      * lalu disetujui, sehingga siap untuk enrollment LMS / pengisian nilai.
      *
-     * Idempoten — lewati bila KRS untuk mahasiswa+periode tsb sudah ada.
+     * Idempoten - lewati bila KRS untuk mahasiswa+periode tsb sudah ada.
      */
     public function run()
     {

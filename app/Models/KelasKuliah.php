@@ -23,7 +23,7 @@ class KelasKuliah extends Model
 
     /**
      * sistem_kuliah diambil dari penawaran (sumber per-MK/kurikulum),
-     * bukan disimpan di kelas — hindari duplikasi.
+     * bukan disimpan di kelas - hindari duplikasi.
      */
     public function getSistemKuliahAttribute(): ?string
     {

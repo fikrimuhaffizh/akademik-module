@@ -3,6 +3,7 @@
 namespace Modules\Akademik\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use Modules\Akademik\Http\Requests\PenawaranGenerateRequest;
 use Modules\Akademik\Http\Requests\PenawaranRequest;
 use Modules\Akademik\Services\GeneratePenawaranService;
 use Modules\Akademik\Services\PenawaranService;
@@ -45,12 +46,9 @@ class PenawaranController extends Controller
     /**
      * Generate Penawaran dari Kurikulum (otomatis).
      */
-    public function generateFromKurikulum(Request $request)
+    public function generateFromKurikulum(PenawaranGenerateRequest $request)
     {
-        $data = $request->validate([
-            'periode_akademik_id' => 'required|integer',
-            'prodi_id' => 'required|integer',
-        ]);
+        $data = $request->validated();
 
         try {
             $result = $this->generatePenawaranService->generate(

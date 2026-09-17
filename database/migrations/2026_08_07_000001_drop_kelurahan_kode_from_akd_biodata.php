@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Data wilayah hanya 3 level (provinsi/kabupaten/kecamatan) — lihat data/wilayah.php.
+     * Data wilayah hanya 3 level (provinsi/kabupaten/kecamatan) - lihat data/wilayah.php.
      * Kolom kelurahan_kode tidak pernah terisi lewat cascade (endpoint /villages tidak ada),
      * jadi dihapus agar konsisten dengan sumber data.
      */

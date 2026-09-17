@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Data wilayah kini 4 level (provinsi/kabupaten/kecamatan/kelurahan) —
+     * Data wilayah kini 4 level (provinsi/kabupaten/kecamatan/kelurahan) -
      * lihat data/villages.php (83k desa/kelurahan, Kemendagri via cahyadsn/wilayah).
      */
     public function up(): void

@@ -167,7 +167,7 @@
             });
         });
 
-        // Bulk modal forms: hidden draft_ids (JSON) → per-id array inputs before ajax-form reads FormData
+        // Bulk modal forms: hidden draft_ids (JSON) => per-id array inputs before ajax-form reads FormData
         document.addEventListener('submit', function (e) {
             const form = e.target;
             if (! form.matches?.('.ajax-form')) return;

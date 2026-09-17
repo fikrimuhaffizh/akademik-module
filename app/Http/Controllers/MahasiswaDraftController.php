@@ -3,6 +3,12 @@ namespace Modules\Akademik\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Modules\Akademik\Http\Requests\MahasiswaDraftBulkDestroyRequest;
+use Modules\Akademik\Http\Requests\MahasiswaDraftKurikulumOptionsRequest;
+use Modules\Akademik\Http\Requests\MahasiswaDraftSubmitRequest;
+use Modules\Akademik\Http\Requests\MahasiswaDraftUpdateRequest;
+use Modules\Akademik\Http\Requests\SetKurikulumRequest;
+use Modules\Akademik\Http\Requests\SetStatusDraftRequest;
 use Modules\Akademik\Models\MahasiswaDraft;
 use Modules\Akademik\Services\MahasiswaDraftService;
 use Modules\HrCore\Services\StrukturOrganisasiService;
@@ -59,7 +65,7 @@ class MahasiswaDraftController extends Controller
     }
 
     /**
-     * Detail draft — konten modal bertab (Akademik | Biodata | PMB).
+     * Detail draft - konten modal bertab (Akademik | Biodata | PMB).
      */
     public function show(string $id)
     {
@@ -81,11 +87,9 @@ class MahasiswaDraftController extends Controller
         return view('akademik::pages.mahasiswa-draft.set-kurikulum', compact('draft', 'kurikulumOptions'));
     }
 
-    public function setKurikulum(Request $request, string $id)
+    public function setKurikulum(SetKurikulumRequest $request, string $id)
     {
-        $validated = $request->validate([
-            'kurikulum_kode' => ['nullable', 'string', 'max:50'],
-        ]);
+        $validated = $request->validated();
 
         $this->service->update(decryptIdIfEncrypted($id), ['kurikulum_kode' => $validated['kurikulum_kode'] ?? null]);
 
@@ -102,11 +106,9 @@ class MahasiswaDraftController extends Controller
         return view('akademik::pages.mahasiswa-draft.set-status', ['draft' => $draft]);
     }
 
-    public function setStatus(Request $request, string $id)
+    public function setStatus(SetStatusDraftRequest $request, string $id)
     {
-        $validated = $request->validate([
-            'status_draft' => ['required', 'in:draft,terima,batal'],
-        ]);
+        $validated = $request->validated();
 
         $draft = \Modules\Akademik\Models\MahasiswaDraft::findOrFail(decryptIdIfEncrypted($id));
 
@@ -119,14 +121,9 @@ class MahasiswaDraftController extends Controller
         return jsonSuccess('Status akhir draft berhasil diatur.', null, ['reload_datatable' => true]);
     }
 
-    public function update(Request $request, string $id)
+    public function update(MahasiswaDraftUpdateRequest $request, string $id)
     {
-        $validated = $request->validate([
-            'nim'            => 'nullable|string|max:50',
-            'nama'           => 'nullable|string|max:255',
-            'email'          => 'nullable|email|max:255',
-            'kurikulum_kode' => 'nullable|string|max:50',
-        ]);
+        $validated = $request->validated();
 
         $this->service->update($id, array_filter($validated));
 
@@ -140,12 +137,9 @@ class MahasiswaDraftController extends Controller
         return jsonSuccess('Draft berhasil dihapus.', null, ['reload_datatable' => true]);
     }
 
-    public function bulkDestroy(Request $request)
+    public function bulkDestroy(MahasiswaDraftBulkDestroyRequest $request)
     {
-        $validated = $request->validate([
-            'ids'   => 'required|array|min:1',
-            'ids.*' => 'integer|exists:akd_mahasiswa_draft,draft_id',
-        ]);
+        $validated = $request->validated();
 
         $result = $this->service->bulkDelete($validated['ids']);
 
@@ -171,12 +165,9 @@ class MahasiswaDraftController extends Controller
         ]);
     }
 
-    public function submit(Request $request)
+    public function submit(MahasiswaDraftSubmitRequest $request)
     {
-        $validated = $request->validate([
-            'draft_ids'   => 'required|array',
-            'draft_ids.*' => 'integer|exists:akd_mahasiswa_draft,draft_id',
-        ]);
+        $validated = $request->validated();
 
         $result = $this->service->submit($validated['draft_ids']);
 
@@ -189,10 +180,10 @@ class MahasiswaDraftController extends Controller
             ->with($result['errors'] ? 'error' : 'success', $message);
     }
     /**     * AJAX: return kurikulum options filtered by selected drafts' prodi + angkatan.     */
-    public function kurikulumOptions(Request $request)
+    public function kurikulumOptions(MahasiswaDraftKurikulumOptionsRequest $request)
     {
-        $request->validate(['draft_ids' => ['required', 'array', 'min:1'], 'draft_ids.*' => ['integer']]);
-        $drafts = \Modules\Akademik\Models\MahasiswaDraft::whereIn('draft_id', $request->draft_ids)->get();
+        $validated = $request->validated();
+        $drafts = \Modules\Akademik\Models\MahasiswaDraft::whereIn('draft_id', $validated['draft_ids'])->get();
         if ($drafts->isEmpty()) {
             return jsonNotFound('Draft tidak ditemukan.');
         }
@@ -223,9 +214,9 @@ class MahasiswaDraftController extends Controller
     public function setKurikulumBulkForm()
     {
         $kurikulumOptions = app(KurikulumService::class)->getAll();return view('akademik::pages.mahasiswa-draft.set-kurikulum-bulk', compact('kurikulumOptions'));
-    }public function setKurikulumBulk(Request $request)
+    }    public function setKurikulumBulk(SetKurikulumRequest $request)
     {
-        $validated = $request->validate(['draft_ids' => ['required', 'array', 'min:1'], 'draft_ids.*' => ['integer'], 'mode' => ['required', 'in:auto,manual'], 'kurikulum_kode' => ['nullable', 'string', 'max:50', 'required_if:mode,manual']], ['draft_ids.required' => 'Pilih minimal satu draft (centang di kolom pertama).']);
+        $validated = $request->validated();
         $result    = $this->service->setKurikulumBulk($validated['draft_ids'], $validated['mode'], $validated['kurikulum_kode'] ?? null, );
         $message   = sprintf('Kurikulum diatur untuk %d draft (%d gagal).', $result['updated'], count($result['errors']));return jsonSuccess($message, null, ['errors' => $result['errors'], 'reload_datatable' => true]);
     }
@@ -234,12 +225,9 @@ class MahasiswaDraftController extends Controller
     {
         return view('akademik::pages.mahasiswa-draft.set-status-bulk');
     }
-    public function setStatusBulk(Request $request)
+    public function setStatusBulk(SetStatusDraftRequest $request)
     {
-        $validated = $request->validate(
-            ['draft_ids' => ['required', 'array', 'min:1'], 'draft_ids.*' => ['integer'], 'status_draft' => ['required', 'in:draft,terima,batal']],
-            ['draft_ids.required' => 'Pilih minimal satu draft (centang di kolom pertama).']
-        );
+        $validated = $request->validated();
 
         $drafts = MahasiswaDraft::whereIn('draft_id', $validated['draft_ids'])->get();
         $updated = 0;

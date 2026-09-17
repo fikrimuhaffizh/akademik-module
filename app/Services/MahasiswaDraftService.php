@@ -19,7 +19,7 @@ use Modules\Referensi\Services\SysRefService;
 
 class MahasiswaDraftService
 {
-    // NIM tidak lagi digenerate di sini — memakai nim_final bawaan PMB.
+    // NIM tidak lagi digenerate di sini - memakai nim_final bawaan PMB.
 
     public function __construct(
         protected SysRefService $sysRefService,
@@ -92,7 +92,7 @@ class MahasiswaDraftService
     public function findById(string|int $id): ?MahasiswaDraft
     {
         // Terima id mentah maupun ter-enkripsi. decryptIdIfEncrypted() bisa
-        // mengembalikan string asli bila dekripsi gagal — fallback ke cari PK langsung.
+        // mengembalikan string asli bila dekripsi gagal - fallback ke cari PK langsung.
         $decrypted = decryptIdIfEncrypted((string) $id);
 
         return MahasiswaDraft::with(['prodi'])->find(is_int($decrypted) ? $decrypted : $id);
@@ -104,7 +104,7 @@ class MahasiswaDraftService
      * mode 'manual': semua draft dipaksa ke kurikulum_kode yang dipilih.
      * mode 'auto'  : kurikulum di-resolve per draft via SettingProdi
      *                (kur_kurikulum.prodi_id = prodi draft, angkatan_list
-     *                memuat angkatan draft) — kurikulum dan prodi berbagi
+     *                memuat angkatan draft) - kurikulum dan prodi berbagi
      *                kode orgunit yang sama, jadi binding selalu konsisten.
      */
     public function setKurikulumBulk(array $draftIds, string $mode, ?string $kurikulumKode = null): array
@@ -214,7 +214,7 @@ class MahasiswaDraftService
 
     /**
      * Sync pendaftar baru dari PMB ke draft table (via PmbReference, HTTP).
-     * Idempotent — hanya insert yang belum ada di draft.
+     * Idempotent - hanya insert yang belum ada di draft.
      */
     public function syncFromPmb(?int $periodeId = null): array
     {
@@ -228,7 +228,7 @@ class MahasiswaDraftService
     }
 
     /**
-     * Import baris mahasiswa-baru PMB ke draft (hasil PmbReference — HTTP).
+     * Import baris mahasiswa-baru PMB ke draft (hasil PmbReference - HTTP).
      */
     private function importPendaftarans(array $pendaftarans): array
     {
@@ -269,7 +269,7 @@ class MahasiswaDraftService
                 }
                 $angkatan = $pendaftaran['angkatan'] ?? (int) now()->format('Y');
 
-                // NIM hanya dari PMB (nim_final) — Akademik tidak generate sendiri.
+                // NIM hanya dari PMB (nim_final) - Akademik tidak generate sendiri.
                 // Baris tanpa NIM dilewati: daftar ulangnya belum selesai di PMB.
                 $nim = $pendaftaran['nim_final'] ?? null;
                 if (empty($nim)) {

@@ -10,11 +10,11 @@ use Modules\Akademik\Models\KelasKuliah;
 use Modules\Akademik\Models\PeriodeAkademik;
 
 /**
- * AkademikDemoSeeder — seed remaining akd_* tables not covered by other seeders.
+ * AkademikDemoSeeder - seed remaining akd_* tables not covered by other seeders.
  * Tables: status_semester, cekal, cuti, transfer, riwayat_status,
  *         nilai_akhir, konversi_nilai, edom_kelas, edom_status, publish_batch.
  *
- * Idempotent — safe to run repeatedly.
+ * Idempotent - safe to run repeatedly.
  */
 class AkademikDemoSeeder extends Seeder
 {
@@ -139,7 +139,7 @@ class AkademikDemoSeeder extends Seeder
     private function seedNilaiAkhir(): void
     {
         // Only if KRS details exist.
-        // akd_krs_detail tidak menyimpan mahasiswa_id / mata_kuliah_id —
+        // akd_krs_detail tidak menyimpan mahasiswa_id / mata_kuliah_id -
         // resolve lewat join: krs_detail -> akd_krs (mahasiswa) dan
         // -> akd_kelas_kuliah -> akd_penawaran_mata_kuliah
         // -> kur_kurikulum_mata_kuliah (mata_kuliah_id).

@@ -247,7 +247,7 @@
         });
     }
 
-    // Toggle centang/lepas — delegation pada tabel (elemen stabil, survive re-render)
+    // Toggle centang/lepas - delegation pada tabel (elemen stabil, survive re-render)
     document.getElementById('table-krs-kelas').addEventListener('change', function (e) {
         const chk = e.target.closest('.chk-ambil');
         if (!chk) return;
@@ -267,7 +267,7 @@
             });
     });
 
-    // Tombol lepas di cart — delegation pada container cart
+    // Tombol lepas di cart - delegation pada container cart
     document.getElementById('cart-list').addEventListener('click', function (e) {
         const btn = e.target.closest('.btn-lepas');
         if (!btn) return;

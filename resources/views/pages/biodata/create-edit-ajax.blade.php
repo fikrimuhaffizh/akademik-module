@@ -28,7 +28,7 @@
                 <x-ui.form-textarea name="alamat" label="Alamat" value="{{ $row->alamat ?? '' }}" />
             </div>
 
-            {{-- Wilayah cascading (komponen terpusat): provinsi → kabupaten → kecamatan --}}
+            {{-- Wilayah cascading (komponen terpusat): provinsi => kabupaten => kecamatan --}}
             <div class="col-md-12">
                 <x-ui.wilayah-cascade
                     :wilayah-data="$wilayahData"

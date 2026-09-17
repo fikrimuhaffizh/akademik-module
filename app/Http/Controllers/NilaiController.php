@@ -28,7 +28,7 @@ class NilaiController extends Controller
     // ADMIN: Import + CRUD nilai
 
     /**
-     * Admin: index page — shows import form + nilai table.
+     * Admin: index page - shows import form + nilai table.
      * Mahasiswa: read-only nilai (KHS / transkrip).
      *
      * Disambiguate via ?role=admin or current user role.
@@ -44,7 +44,7 @@ class NilaiController extends Controller
             return view('akademik::pages.nilai.admin-index', compact('kelasOptions'));
         }
 
-        // Mahasiswa view — redirect to KHS
+        // Mahasiswa view - redirect to KHS
         return view('akademik::pages.nilai.index');
     }
 

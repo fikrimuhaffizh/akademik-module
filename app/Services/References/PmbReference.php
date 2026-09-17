@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Log;
  * STANDAR lintas modul: satu folder `Services/References` per modul, satu class
  * per modul sumber. Hanya class di folder ini yang boleh memanggil
  * `service_api('pmb', ...)`. Service domain (mis. MahasiswaDraftService),
- * controller, request, dan model tidak boleh memanggil modul lain langsung —
+ * controller, request, dan model tidak boleh memanggil modul lain langsung -
  * dan TIDAK boleh menyentuh tabel/view milik PMB (mis. `v_pmb_kandidat_final`),
  * karena Akademik & PMB berdiri di server masing-masing.
  *
@@ -23,7 +23,7 @@ use Illuminate\Support\Facades\Log;
  * terinstal di server Akademik.
  *
  * Semua method "aman gagal": kegagalan dicatat di log dan ditandai lewat nilai
- * balik (null/false) supaya pemanggil bisa memberi pesan yang jelas — tidak ada
+ * balik (null/false) supaya pemanggil bisa memberi pesan yang jelas - tidak ada
  * exception yang bocor ke pengguna.
  */
 class PmbReference

@@ -2,15 +2,10 @@
 
 namespace Modules\Akademik\Http\Requests;
 
-use Illuminate\Foundation\Http\FormRequest;
+use App\Http\Requests\BaseRequest;
 
-class KrsStoreRequest extends FormRequest
+class KrsStoreRequest extends BaseRequest
 {
-    public function authorize(): bool
-    {
-        return true;
-    }
-
     public function rules(): array
     {
         return [

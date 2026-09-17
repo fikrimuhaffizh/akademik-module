@@ -18,7 +18,7 @@ class MahasiswaController extends Controller
         // export & searchSelect2 ikut di-gate view (melindungi PII mahasiswa).
         $this->middleware('permission:akd.mahasiswa.view')->only(['index', 'data', 'export', 'searchSelect2']);
         // Tidak ada create/store: mahasiswa TIDAK ditambah manual dari UI.
-        // Sumbernya alur draft PMB (MahasiswaDraftService) atau impor massal —
+        // Sumbernya alur draft PMB (MahasiswaDraftService) atau impor massal -
         // permission 'akd.mahasiswa.create' kini hanya dipakai impor
         // (MahasiswaImportController).
         $this->middleware('permission:akd.mahasiswa.update')->only(['edit', 'update']);
@@ -87,8 +87,8 @@ class MahasiswaController extends Controller
     }
 
     /**
-     * Mahasiswa tidak ditambah manual — lihat catatan di constructor.
-     * Sumber data: alur draft PMB (`mahasiswa-draft.sync` → `submit`) dan impor
+     * Mahasiswa tidak ditambah manual - lihat catatan di constructor.
+     * Sumber data: alur draft PMB (`mahasiswa-draft.sync` => `submit`) dan impor
      * massal (`mahasiswa.import.*`), yang tetap disediakan sebagai pengecualian.
      */
     public function edit(string $id)

@@ -6,7 +6,10 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Validation\ValidationException;
+use Modules\Akademik\Http\Requests\KrsAjukanRequest;
+use Modules\Akademik\Http\Requests\KrsPilihRequest;
 use Modules\Akademik\Http\Requests\KrsStoreRequest;
+use Modules\Akademik\Http\Requests\KrsToggleRequest;
 use Modules\Akademik\Http\Requests\KrsUpdateRequest;
 use Modules\Akademik\Models\Mahasiswa;
 use Modules\Akademik\Models\PeriodeAkademik;
@@ -194,10 +197,10 @@ class KrsController extends Controller
         return view('akademik::pages.krs.index', compact('periode', 'mahasiswa', 'banner', 'riwayat', 'isSuperadmin'));
     }
 
-    public function pilih(Request $request)
+    public function pilih(KrsPilihRequest $request)
     {
-        $request->validate(['mahasiswa_id' => 'required']);
-        Session::put('krs_mahasiswa_id', decryptIdIfEncrypted($request->mahasiswa_id));
+        $validated = $request->validated();
+        Session::put('krs_mahasiswa_id', decryptIdIfEncrypted($validated['mahasiswa_id']));
 
         return redirect()->route('akd.krs-mahasiswa.index');
     }
@@ -233,14 +236,12 @@ class KrsController extends Controller
         return response()->json(['data' => $rows->values()]);
     }
 
-    public function toggle(Request $request)
+    public function toggle(KrsToggleRequest $request)
     {
-        $request->validate([
-            'mahasiswa_id' => 'required', 'kelas_id' => 'required', 'ambil' => 'required|boolean',
-        ]);
+        $validated = $request->validated();
 
-        $mahasiswaId = decryptIdIfEncrypted($request->mahasiswa_id);
-        $kelasId = decryptIdIfEncrypted($request->kelas_id);
+        $mahasiswaId = decryptIdIfEncrypted($validated['mahasiswa_id']);
+        $kelasId = decryptIdIfEncrypted($validated['kelas_id']);
         $periode = $this->periodeService->getAktif();
 
         if (! $periode) {
@@ -248,7 +249,7 @@ class KrsController extends Controller
         }
 
         try {
-            $krs = $this->krsService->toggleKelas($mahasiswaId, $periode->periode_akademik_id, (int) $kelasId, (bool) $request->ambil);
+            $krs = $this->krsService->toggleKelas($mahasiswaId, $periode->periode_akademik_id, (int) $kelasId, (bool) $validated['ambil']);
         } catch (ValidationException $e) {
             return jsonError($e->errors()['krs'][0] ?? 'Gagal menyimpan KRS.', 422);
         }
@@ -259,12 +260,12 @@ class KrsController extends Controller
         ]);
     }
 
-    public function ajukan(Request $request)
+    public function ajukan(KrsAjukanRequest $request)
     {
-        $request->validate(['krs_id' => 'required']);
+        $validated = $request->validated();
 
         try {
-            $krs = $this->krsService->ajukan(decryptIdIfEncrypted($request->krs_id));
+            $krs = $this->krsService->ajukan(decryptIdIfEncrypted($validated['krs_id']));
         } catch (ValidationException $e) {
             return jsonError($e->errors()['krs'][0] ?? 'Gagal mengajukan KRS.', 422);
         }

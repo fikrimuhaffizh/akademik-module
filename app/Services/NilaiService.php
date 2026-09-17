@@ -129,7 +129,7 @@ class NilaiService
     public function hasLulusPrasyarat(int $mahasiswaId, int $prasyaratMkId): bool
     {
         // prasyarat_mk_id mengacu ke kur_mata_kuliah.mata_kuliah_id (single source Kurikulum),
-        // id yang sama dipakai Nilai.mata_kuliah_id — cek langsung tanpa tabel perantara.
+        // id yang sama dipakai Nilai.mata_kuliah_id - cek langsung tanpa tabel perantara.
         return Nilai::where('mahasiswa_id', $mahasiswaId)
             ->where('mata_kuliah_id', $prasyaratMkId)
             ->where('is_lulus', true)

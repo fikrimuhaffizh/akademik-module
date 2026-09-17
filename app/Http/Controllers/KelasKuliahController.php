@@ -116,7 +116,7 @@ class KelasKuliahController extends Controller
     /**
      * Cek bentrok jadwal mingguan sebelum simpan (create/update).
      * - Antar jadwal dalam 1 submit (kelas yang sama): hari + jam irisan
-     *   dengan ruang offline sama ATAU dosen pengampu sama → bentrok.
+     *   dengan ruang offline sama ATAU dosen pengampu sama => bentrok.
      * - Vs jadwal kelas LAIN: pakai JadwalKuliahService::findConflicts
      *   (ruang sama / dosen sama, hari + jam irisan, online diabaikan).
      * $ignoreKelasId untuk update (abaikan kelas ini sendiri).

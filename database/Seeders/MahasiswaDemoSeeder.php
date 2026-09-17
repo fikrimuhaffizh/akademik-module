@@ -11,7 +11,7 @@ use Modules\Akademik\Models\Biodata;
 use Modules\Kurikulum\Models\Kurikulum;
 
 /**
- * MahasiswaDemoSeeder — buat 20 sample mahasiswa (4/prodi).
+ * MahasiswaDemoSeeder - buat 20 sample mahasiswa (4/prodi).
  * Idempoten (updateOrCreate by nim).
  */
 class MahasiswaDemoSeeder extends Seeder

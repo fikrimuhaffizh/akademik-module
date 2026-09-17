@@ -213,7 +213,7 @@ class KrsService
             $this->failValidation('Mahasiswa sudah mengambil salah satu kelas tersebut.');
         }
 
-        // === Kuota: tiap kelas gak boleh lewat kapasitas (terisi+1 > kapasitas) ===
+        // Kuota: tiap kelas gak boleh lewat kapasitas (terisi+1 > kapasitas)
         $terisi = DB::table('akd_krs_detail as d')
             ->join('akd_krs as k', 'd.krs_id', '=', 'k.krs_id')
             ->whereIn('d.kelas_id', $kelasIds)
@@ -240,10 +240,10 @@ class KrsService
             $this->failValidation("Total SKS {$totalSks} melebihi batas {$batasSks} SKS.");
         }
 
-        // === NEW: Prasyarat validation ===
+        // NEW: Prasyarat validation
         $this->validatePrasyarat($mahasiswaId, $kelas);
 
-        // === NEW: Jadwal overlap validation ===
+        // NEW: Jadwal overlap validation
         $this->validateJadwalOverlap($kelas, $mahasiswaId, $ignoreKrsId);
     }
 
@@ -572,7 +572,7 @@ class KrsService
         );
 
         $prodiIds  = $grouped->keys()->map(fn($k) => (int) explode('|', $k)[1])->unique()->values();
-        // Nama prodi adalah data SDM → lewat HrmaxReference (satu panggilan HTTP
+        // Nama prodi adalah data SDM => lewat HrmaxReference (satu panggilan HTTP
         // untuk semua orgunit_id), bukan query tabel modul lain.
         $prodiNama = $this->hrmaxReference->namaUnit($prodiIds->all());
 

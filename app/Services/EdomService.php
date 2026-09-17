@@ -23,11 +23,11 @@ class EdomService
      * Generate edom_status berdasarkan Kelas Kuliah di periode akademik tertentu.
      *
      * Untuk setiap Kelas Kuliah di periode tsb, kita ambil mahasiswa yang
-     * terdaftar (dari KRS yang disetujui → krs_detail dengan kelas_id sama),
+     * terdaftar (dari KRS yang disetujui => krs_detail dengan kelas_id sama),
      * lalu buat satu EdomStatus per (mahasiswa, kelas). Ini menghasilkan:
-     *   Andi  → Kelas A (Dosen A1)
-     *   Budi  → Kelas B (Dosen B1 & B2)
-     *   Citra → Kelas B (Dosen B1 & B2)
+     *   Andi  => Kelas A (Dosen A1)
+     *   Budi  => Kelas B (Dosen B1 & B2)
+     *   Citra => Kelas B (Dosen B1 & B2)
      */
     public function generateForPeriode(int $periodeAkademikId): int
     {
@@ -133,9 +133,9 @@ class EdomService
     }
 
     /**
-     * Mulai isi EDOM — update status menjadi sedang_diisi.
+     * Mulai isi EDOM - update status menjadi sedang_diisi.
      *
-     * WAJIB cek kepemilikan — $userId harus merupakan
+     * WAJIB cek kepemilikan - $userId harus merupakan
      * mahasiswa pemilik EdomStatus. Sebelumnya parameter ini diabaikan sehingga
      * user bisa mengubah status EDOM milik mahasiswa lain (IDOR).
      */
@@ -159,7 +159,7 @@ class EdomService
     }
 
     /**
-     * Selesai isi EDOM — update status menjadi selesai.
+     * Selesai isi EDOM - update status menjadi selesai.
      */
     public function selesaiIsi(int $edomStatusId, int $surveiPengisianId): EdomStatus
     {
@@ -214,7 +214,7 @@ class EdomService
     }
 
     /**
-     * Survei EDOM bersama (shared) untuk semua kelas — diidentifikasi via slug tetap.
+     * Survei EDOM bersama (shared) untuk semua kelas - diidentifikasi via slug tetap.
      */
     public function getEdomSurvei(): ?Survei
     {
@@ -234,7 +234,7 @@ class EdomService
     }
 
     /**
-     * Sinkron status EdomStatus dari Survei (lazy) — memudahkan monitoring
+     * Sinkron status EdomStatus dari Survei (lazy) - memudahkan monitoring
      * tanpa callback antar-modul.
      */
     public function syncDariSurvei(EdomStatus $edomStatus): EdomStatus
@@ -258,7 +258,7 @@ class EdomService
 
     /**
      * Nilai rata-rata EDOM per kelas untuk periode tertentu,
-     * diambil dari jawaban Survei (entitas_target = EdomStatus → kelas).
+     * diambil dari jawaban Survei (entitas_target = EdomStatus => kelas).
      * Mengembalikan map: kelas_id => rata-rata skala (1-5) atau null.
      */
     public function getRataRataPerKelas(int $periodeAkademikId): array

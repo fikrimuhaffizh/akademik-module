@@ -6,10 +6,10 @@ use Illuminate\Database\Seeder;
 use Modules\Referensi\Models\SysRef;
 
 /**
- * DataSeeder — data default tenant baru untuk Akademik.
+ * DataSeeder - data default tenant baru untuk Akademik.
  *
  * Isi: grup `pembimbing_mahasiswa` di tabel `sys_refs` (PA/PL/P1/P2).
- * Idempotent — updateOrCreate, aman dijalankan berulang.
+ * Idempotent - updateOrCreate, aman dijalankan berulang.
  */
 class DataSeeder extends Seeder
 {
@@ -17,8 +17,8 @@ class DataSeeder extends Seeder
     {
         $tenantId = sys_tenant_id(null) ?? 1;
 
-        // ================= REFERENSI PEMBIMBING =================
-        // grup: pembimbing_mahasiswa — dipakai dropdown pembimbing di form TA/skripsi.
+        // REFERENSI PEMBIMBING
+        // grup: pembimbing_mahasiswa - dipakai dropdown pembimbing di form TA/skripsi.
         $data = [
             ['tenant_id' => $tenantId, 'grup' => 'pembimbing_mahasiswa', 'kode' => 'PA',   'label' => 'Pembimbing Akademik', 'urutan' => 1],
             ['tenant_id' => $tenantId, 'grup' => 'pembimbing_mahasiswa', 'kode' => 'PL',   'label' => 'Pembimbing Lapangan', 'urutan' => 2],

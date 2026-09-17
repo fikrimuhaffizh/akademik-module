@@ -23,14 +23,14 @@ use Modules\HrCore\Models\Pegawai;
 use Modules\HrCore\Models\StrukturOrganisasi;
 
 /**
- * DemoSeeder Perkuliahan — buat harusannya KRS siap diisi.
+ * DemoSeeder Perkuliahan - buat harusannya KRS siap diisi.
  *
  * Urutan (dependency):
  *   Periode -> Ruang -> (loop prodi: Kurikulum published -> Penawaran SEMUA MK
  *   -> Kelas -> Pembebanan 20 Dosen -> Jadwal) -> Setting Prodi (buka KRS)
  *   -> Batas SKS -> Pembimbing Mahasiswa -> Kalender.
  *
- * Idempoten (updateOrCreate) — aman dijalankan berulang.
+ * Idempoten (updateOrCreate) - aman dijalankan berulang.
  */
 class DemoSeeder extends Seeder
 {
@@ -50,7 +50,7 @@ class DemoSeeder extends Seeder
             ->orderBy('pegawai_id')
             ->get();
 
-        // Slot jadwal non-overlap (hari+jam berbeda) — cukup untuk ratusan kelas.
+        // Slot jadwal non-overlap (hari+jam berbeda) - cukup untuk ratusan kelas.
         $slotJadwal = $this->buildJadwalSlots($ruang);
 
         $idxDosen = 0;   // round-robin antar dosen

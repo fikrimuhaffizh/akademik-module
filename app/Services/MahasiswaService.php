@@ -84,7 +84,7 @@ class MahasiswaService
     }
 
     /**
-     * Guard keunikan NIM — dipakai di titik NIM masuk `akd_mahasiswa`.
+     * Guard keunikan NIM - dipakai di titik NIM masuk `akd_mahasiswa`.
      * Cek apakah NIM sudah ada di tabel Mahasiswa.
      *
      * Dipanggil `MahasiswaDraftService::submit()` saat submit draft PMB; itulah
@@ -290,7 +290,7 @@ class MahasiswaService
             });
         }
 
-        // Filter NIM persis — inilah cara "cek NIM" lintas modul: satu panggilan
+        // Filter NIM persis - inilah cara "cek NIM" lintas modul: satu panggilan
         // ke endpoint daftar, `data` kosong berarti belum dipakai. Tidak perlu
         // endpoint tersendiri yang query-nya harus dijaga sinkron.
         if (! empty($filters['nim'])) {
@@ -380,7 +380,7 @@ class MahasiswaService
     }
 
     /**
-     * Opsi mahasiswa (dropdown) — orderBy nama.
+     * Opsi mahasiswa (dropdown) - orderBy nama.
      */
     public function getForSelect(): Collection
     {

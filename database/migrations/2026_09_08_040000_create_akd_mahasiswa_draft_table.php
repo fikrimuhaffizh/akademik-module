@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id('draft_id');
             $table->unsignedBigInteger('tenant_id')->default(1)->index();
 
-            // PMB Bridge (unique per tenant — prevents double sync)
+            // PMB Bridge (unique per tenant - prevents double sync)
             $table->unsignedBigInteger('pmb_pendaftar_id');
             $table->unique(['tenant_id', 'pmb_pendaftar_id'], 'akd_draft_tenant_pmb_unique');
 

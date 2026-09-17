@@ -12,14 +12,14 @@ use RuntimeException;
  *
  * STANDAR lintas modul: satu folder `Services/References` per modul, satu class
  * per modul sumber. Hanya class inilah yang boleh memanggil
- * `service_api('hrmax', ...)` — sebelumnya Akademik men-query
+ * `service_api('hrmax', ...)` - sebelumnya Akademik men-query
  * `Modules\HrMax\Models\StrukturOrganisasi` langsung, dan itu mati begitu modul
  * HRMax tidak terpasang di server Akademik.
  *
  * Endpoint HRMax yang dipakai:
  *   GET /api/v1/hr-max/prodi            daftar unit organisasi bertipe prodi
  *
- * Kredensial dibaca `IntegrationConfig` → `config('integration.services.hrmax')`
+ * Kredensial dibaca `IntegrationConfig` => `config('integration.services.hrmax')`
  * (env `HRMAX_SERVICE_URL` / `HRMAX_SERVICE_TOKEN`).
  */
 class HrmaxReference
@@ -65,7 +65,7 @@ class HrmaxReference
     }
 
     /**
-     * Nama unit organisasi per `orgunit_id` — SATU panggilan HTTP untuk banyak id
+     * Nama unit organisasi per `orgunit_id` - SATU panggilan HTTP untuk banyak id
      * (bukan satu panggilan per prodi).
      *
      * @param  array<int, int|string>  $orgunitIds
@@ -102,7 +102,7 @@ class HrmaxReference
     }
 
     /**
-     * Terjemahkan exception integrasi menjadi pesan yang bisa ditindaklanjuti —
+     * Terjemahkan exception integrasi menjadi pesan yang bisa ditindaklanjuti -
      * HTTP 401 bukan berarti .env belum diisi, bisa token yang sudah dicabut.
      */
     private function describeFailure(\Throwable $e): string

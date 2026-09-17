@@ -23,7 +23,7 @@ class EdomController extends Controller
     }
 
     /**
-     * Admin: Index — rekap progress EDOM per kelas
+     * Admin: Index - rekap progress EDOM per kelas
      */
     public function adminIndex()
     {
@@ -90,7 +90,7 @@ class EdomController extends Controller
      */
     public function activate($edomKelas)
     {
-        // Placeholder — akan diimplementasikan setelah akper_edom_kelas diaktifkan
+        // Placeholder - akan diimplementasikan setelah akper_edom_kelas diaktifkan
         return jsonSuccess('EDOM berhasil diaktifkan.', null, ['reload' => true]);
     }
 
@@ -143,7 +143,7 @@ class EdomController extends Controller
     }
 
     /**
-     * Mahasiswa: Mulai isi EDOM → redirect ke Survei module.
+     * Mahasiswa: Mulai isi EDOM => redirect ke Survei module.
      */
     public function mulaiIsi($edomStatusId)
     {
@@ -157,8 +157,8 @@ class EdomController extends Controller
             abort(404, 'Konfigurasi EDOM untuk kelas ini belum tersedia.');
         }
 
-        // Dapatkan slug survei — lewat EdomService, bukan service modul Survei:
-        // kopling lintas modul Akademik → Survei dibatasi di satu file itu.
+        // Dapatkan slug survei - lewat EdomService, bukan service modul Survei:
+        // kopling lintas modul Akademik => Survei dibatasi di satu file itu.
         $slug = $this->edomService->slugSurvei((int) $edomKelas->survei_id);
 
         if (! $slug) {

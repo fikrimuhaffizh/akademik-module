@@ -30,7 +30,7 @@
     </x-ui.card>
 
 
-{{-- Delegated handlers clone-row (kelas-kuliah modal) — inline script di
+{{-- Delegated handlers clone-row (kelas-kuliah modal) - inline script di
      modal AJAX tidak dieksekusi core-ajax, makanya hidup di halaman host. --}}
 
 @push('scripts')
@@ -39,7 +39,7 @@
     // Delegated handlers for clone-row forms (kelas-kuliah modal).
     // Inline <script> in AJAX-loaded modal content is NOT executed by core-ajax
     // (.html()), so these live here (rendered in the main layout) and use
-    // event delegation — they keep working for any modal opened later.
+    // event delegation - they keep working for any modal opened later.
 
     function reindex(listSel) {
         var list = document.querySelector(listSel);
@@ -66,7 +66,7 @@
             list.appendChild(row);
             reindex(listSel);
             // select2 (.js-select2-ajax) inside the clone auto-inits via
-            // the MutationObserver in tabler.js — no manual init needed.
+            // the MutationObserver in tabler.js - no manual init needed.
             return;
         }
 

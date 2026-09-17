@@ -264,7 +264,7 @@ class JadwalKuliahService
             }
         }
 
-        // 2) Bentrok DOSEN (pembebanan) — kelas lain, hari & waktu sama
+        // 2) Bentrok DOSEN (pembebanan) - kelas lain, hari & waktu sama
         if (! $isOnline && $hari && $mulai && $selesai) {
             $pegawaiIds = PembebananDosen::where('kelas_id', $kelasId)->pluck('pegawai_id');
 

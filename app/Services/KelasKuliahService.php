@@ -26,7 +26,7 @@ class KelasKuliahService
     {
         $query = $this->getDataQuery();
 
-        // Global search — support string maupun format DataTables search[value]
+        // Global search - support string maupun format DataTables search[value]
         $searchValue = $filters['search'] ?? null;
         if (is_array($searchValue)) {
             $searchValue = $searchValue['value'] ?? null;

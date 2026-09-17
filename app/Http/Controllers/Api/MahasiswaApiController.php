@@ -8,7 +8,7 @@ use Illuminate\Http\Request;
 use Modules\Akademik\Services\MahasiswaService;
 
 /**
- * REST API — Student data.
+ * REST API - Student data.
  *
  * Endpoint ringan untuk konsumsi lintas-modul / lintas-server.
  * Mengembalikan identitas dasar mahasiswa: nama, nim, angkatan,
